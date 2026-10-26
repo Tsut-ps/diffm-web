@@ -1,0 +1,17 @@
+{
+  "name": "diffm-web",
+  "private": true,
+  "type": "module",
+  "description": "2本の動画をフレーム単位で比較し、差分をグラフにする Web ツール",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "mediabunny": "1.62.1"
+  },
+  "devDependencies": {
+    "vite": "8.3.5"
+  }
+}

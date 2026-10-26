@@ -39,7 +39,9 @@ body {
   font: 14px/1.6 system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", sans-serif;
 }
 
-header, main { max-width: 1120px; margin-inline: auto; padding-inline: 16px; }
+header, main, footer { max-width: 1120px; margin-inline: auto; padding-inline: 16px; }
+footer { padding-block: 0 28px; color: var(--muted); font-size: 12.5px; }
+footer a { color: inherit; }
 header { padding-block: 20px 4px; }
 h1 { margin: 0; font-size: 20px; }
 header p { margin: 4px 0 0; color: var(--muted); }

@@ -1,4 +1,5 @@
-import { Input, BlobSource, ALL_FORMATS, VideoSampleSink } from './vendor/mediabunny.min.mjs';
+import { Input, BlobSource, ALL_FORMATS, VideoSampleSink } from 'mediabunny';
+import './style.css';
 import { pairByIndex, pairByTime } from './pairing.js';
 import { meanLumaDiff, renderDiff, findRanges, resolveMode, compareInfo } from './diff.js';
 import { drawChart, pickIndex } from './chart.js';

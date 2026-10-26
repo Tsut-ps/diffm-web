@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; worker-src blob:; base-uri 'none'; form-action 'none'">
+  <!-- CSP はビルド時に vite.config.js が挿入する（開発サーバーとは両立しないため） -->
   <title>diffm-web</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="app.js"></script>
+  <script type="module" src="/src/app.js"></script>
 </head>
 <body>
   <header>
@@ -96,6 +95,11 @@
       <ul id="ranges"></ul>
     </section>
   </main>
+
+  <footer>
+    <a href="https://github.com/Tsut-ps/diffm-web" rel="noopener noreferrer">ソースコード</a>
+    · 動画の読み込みに <a href="https://github.com/Vanilagy/mediabunny/tree/f630141a4ac2936d00af14bf8ff2c5bb62b66150" rel="noopener noreferrer">mediabunny 1.62.1</a>（<a href="https://mozilla.org/MPL/2.0/" rel="noopener noreferrer">MPL-2.0</a>）を使用
+  </footer>
 
   <noscript><p>このツールには JavaScript が必要です。</p></noscript>
 </body>
