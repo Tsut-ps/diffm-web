@@ -6,6 +6,8 @@ import { makeZip } from './zip.js';
 
 const $ = (id) => document.getElementById(id);
 const MAX_LISTED = 200;
+// 1辺の上限（px）。これを超える動画はメモリ不足でタブが落ちうるため、読み込み時に拒否する。
+const MAX_SIDE = 4096;
 
 const state = {
   A: null, // { file, input, track, codec, w, h, fps, duration, first }
@@ -50,9 +52,14 @@ function setMeta(slot, text, bad = false) {
   el.classList.toggle('bad', bad);
 }
 
+// 枠ごとの読み込み世代。新しいファイルが選ばれたら、古い読み込みの結果は捨てる。
+const loadGen = { A: 0, B: 0 };
+
 async function setFile(slot, file) {
   if (state.running) return;
-  state[slot]?.input.dispose?.();
+  const gen = ++loadGen[slot];
+  const isStale = () => gen !== loadGen[slot];
+  state[slot]?.input.dispose();
   state[slot] = null;
   resetRun();
   showError('');
@@ -61,13 +68,23 @@ async function setFile(slot, file) {
   setMeta(slot, '読み込み中…');
   refreshWarnings();
 
+  let input = null;
   try {
     if (typeof VideoDecoder === 'undefined') {
       throw new Error('このブラウザは WebCodecs に対応していません。最新の Chrome / Edge / Safari / Firefox を使ってください。');
     }
-    const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+    input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
     const track = await input.getPrimaryVideoTrack();
+    if (isStale()) return input.dispose();
     if (!track) throw new Error('映像トラックが見つかりません。');
+
+    // 解像度は重い処理（全パケットの走査）の前に確かめる
+    const [cw, ch] = await Promise.all([track.getDisplayWidth(), track.getDisplayHeight()]);
+    if (isStale()) return input.dispose();
+    if (!(cw > 0 && ch > 0)) throw new Error('解像度を読み取れません。');
+    if (cw > MAX_SIDE || ch > MAX_SIDE) {
+      throw new Error(`解像度 ${cw}×${ch} は上限（1辺 ${MAX_SIDE}px）を超えているため、比較できません。`);
+    }
 
     const [codec, canDecode, w, h, first, duration, stats] = await Promise.all([
       track.getCodec(),
@@ -78,13 +95,17 @@ async function setFile(slot, file) {
       track.computeDuration(),
       track.computePacketStats(300),
     ]);
+    if (isStale()) return input.dispose();
     if (!canDecode) {
       throw new Error(`このブラウザは ${codec ?? '不明な'} 形式の映像をデコードできません。`);
     }
     const fps = stats.averagePacketRate;
+    if (!(fps > 0 && duration > 0)) throw new Error('フレームレートや長さを読み取れません。');
     state[slot] = { file, input, track, codec, w, h, fps, duration, first };
     setMeta(slot, `${w}×${h} · ${num(fps)} fps · ${num(duration)} 秒 · ${codec}`);
   } catch (e) {
+    if (input && !input.disposed) input.dispose();
+    if (isStale()) return;
     console.error(e);
     setMeta(slot, e.message ?? String(e), true);
   }
