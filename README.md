@@ -59,4 +59,12 @@ GitHub Pages などの静的ホスティングでもそのまま動く。
 | `diff.js` | 差分計算、区間検出、比較条件の警告 |
 | `chart.js` | グラフ描画 |
 | `zip.js` | 無圧縮 ZIP の書き出し |
-| `vendor/` | mediabunny 1.62.1（MPL-2.0。`mediabunny.LICENSE` 参照） |
+| `vendor/` | mediabunny 1.62.1 の配布版（下記） |
+
+## 同梱ライブラリ
+
+`vendor/mediabunny.min.mjs` は [mediabunny](https://github.com/Vanilagy/mediabunny) 1.62.1 の npm 配布物（`dist/bundles/mediabunny.min.mjs`）を無改変で同梱したもの。
+
+- ライセンス: MPL-2.0（[`vendor/mediabunny.LICENSE`](vendor/mediabunny.LICENSE)）
+- ソースコード: <https://github.com/Vanilagy/mediabunny/tree/f630141a4ac2936d00af14bf8ff2c5bb62b66150>（1.62.1 の公開元コミット）
+- 完全性: npm の `sha512-lYzeerDwo9QLhBCipqQDXOSV7InvaIFplllZQviPO5rPwH+IUr8M1uvumk1olIUgMRGkPiInRriv25WFErUgMw==` と一致することを確認済み
