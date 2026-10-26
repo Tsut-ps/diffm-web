@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src blob:; connect-src 'self' blob:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'">
+  <title>diffm-web</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>diffm-web</h1>
+    <p>2本の動画をフレーム単位で比較し、差分をグラフにします。処理はすべてブラウザ内で行い、動画は送信されません。</p>
+  </header>
+
+  <main>
+    <section class="files" aria-label="比較する動画">
+      <div class="slot" data-slot="A">
+        <label class="drop" for="fileA">
+          <span class="slot-title">動画 A（基準）</span>
+          <span class="slot-name" id="nameA">クリックして選択、またはドロップ</span>
+        </label>
+        <input class="visually-hidden" id="fileA" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+        <p class="meta" id="metaA"></p>
+      </div>
+      <div class="slot" data-slot="B">
+        <label class="drop" for="fileB">
+          <span class="slot-title">動画 B（比較対象）</span>
+          <span class="slot-name" id="nameB">クリックして選択、またはドロップ</span>
+        </label>
+        <input class="visually-hidden" id="fileB" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+        <p class="meta" id="metaB"></p>
+      </div>
+    </section>
+
+    <section class="options" aria-label="設定">
+      <label>対応づけ
+        <select id="mode">
+          <option value="auto">自動（fps が違えば時刻）</option>
+          <option value="index">フレーム番号</option>
+          <option value="time">時刻（秒）</option>
+        </select>
+      </label>
+      <label>計算サイズ
+        <select id="scale">
+          <option value="1">100%（正確）</option>
+          <option value="0.5">50%</option>
+          <option value="0.25">25%（速い）</option>
+        </select>
+      </label>
+      <label>描画間隔（フレーム）
+        <input id="interval" type="number" min="1" step="1" value="30">
+      </label>
+      <label>差分の強調
+        <select id="gain">
+          <option value="1">×1</option>
+          <option value="4">×4</option>
+          <option value="16">×16</option>
+        </select>
+      </label>
+      <label>しきい値（0〜255）
+        <input id="threshold" type="number" min="0" max="255" step="0.1" value="1">
+      </label>
+    </section>
+
+    <ul class="warnings" id="warnings" aria-live="polite"></ul>
+    <p class="error" id="error" role="alert" hidden></p>
+
+    <section class="actions">
+      <button id="start" type="button" disabled>開始</button>
+      <button id="stop" type="button" disabled>停止</button>
+      <progress id="bar" max="1" value="0"></progress>
+      <span id="status" aria-live="polite">動画 A と B を選んでください。</span>
+    </section>
+
+    <section class="views" aria-label="フレーム">
+      <figure><canvas id="cA" width="16" height="9"></canvas><figcaption id="capA">A</figcaption></figure>
+      <figure><canvas id="cB" width="16" height="9"></canvas><figcaption id="capB">B</figcaption></figure>
+      <figure><canvas id="cD" width="16" height="9"></canvas><figcaption id="capD">差分</figcaption></figure>
+    </section>
+
+    <section class="graph" aria-label="差分グラフ">
+      <canvas id="chart"></canvas>
+      <div class="tip" id="tip" hidden></div>
+      <p class="hint" id="hint">終了後、グラフの点をクリックすると、そのフレームを A / B / 差分で表示します。</p>
+    </section>
+
+    <section class="result" aria-label="しきい値を超えた区間">
+      <div class="result-head">
+        <h2>しきい値を超えた区間</h2>
+        <button id="exportImages" type="button" disabled>各区間のピークを ZIP で保存</button>
+        <button id="exportCsv" type="button" disabled>CSV で保存</button>
+      </div>
+      <ul id="ranges"></ul>
+    </section>
+  </main>
+
+  <noscript><p>このツールには JavaScript が必要です。</p></noscript>
+</body>
+</html>
