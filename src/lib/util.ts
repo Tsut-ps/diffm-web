@@ -21,12 +21,3 @@ export function must<T>(ctx: T | null): T {
   if (!ctx) throw new Error('2D コンテキストを取得できませんでした。');
   return ctx;
 }
-
-export function download(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}

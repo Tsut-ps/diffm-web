@@ -1,15 +1,13 @@
 // 比較の実行: 2本を先頭から順にデコードし、フレームごとの差分を記録する
 
 import { VideoSampleSink, type VideoSample } from 'mediabunny';
-import { meanLumaDiff, renderDiff } from './diff';
-import { ui } from './dom';
+import { meanLumaDiff, renderDiff } from './lib/diff';
+import { readRunSettings, ui } from './ui/dom';
 import { grab, viewContexts } from './frames';
-import { pairByIndex, pairByTime } from './pairing';
-import { readRunSettings } from './settings';
-import { state } from './state';
-import type { Run } from './types';
-import { errorMessage, fmt, num, yieldToUI } from './util';
-import { refreshResults, resetRun, showCaptions, showError, summary, syncButtons } from './view';
+import { pairByIndex, pairByTime } from './lib/pairing';
+import { state, type Run } from './types';
+import { errorMessage, fmt, num, yieldToUI } from './lib/util';
+import { refreshResults, resetRun, showCaptions, showError, summary, syncButtons } from './ui/view';
 
 /** 進捗表示を更新する間隔（ms） */
 const UI_INTERVAL = 120;

@@ -1,12 +1,10 @@
 // 状態を画面に反映する（メッセージ、ボタン、グラフ、結果リスト）
 
 import { drawChart } from './chart';
-import { compareInfo, findRanges, type Range } from './diff';
-import { lockableInputs, ui } from './dom';
-import { currentMode, currentThreshold } from './settings';
-import { state } from './state';
-import type { Run, Slot } from './types';
-import { fmt, num } from './util';
+import { compareInfo, findRanges, type Range } from '../lib/diff';
+import { currentMode, currentThreshold, lockableInputs, ui } from './dom';
+import { state, type Run, type Slot } from '../types';
+import { fmt, num } from '../lib/util';
 
 /** 結果リストに並べる区間の上限（全区間は ZIP に含める）。 */
 const MAX_LISTED = 200;

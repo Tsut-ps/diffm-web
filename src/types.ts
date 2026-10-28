@@ -1,5 +1,5 @@
 import type { Input, InputVideoTrack, VideoCodec, VideoSampleSink } from 'mediabunny';
-import type { ChartLayout } from './chart';
+import type { ChartLayout } from './ui/chart';
 
 /** 動画の枠。A が基準、B が比較対象。 */
 export type Slot = 'A' | 'B';
@@ -56,3 +56,12 @@ export interface AppState {
   stop: boolean;
   run: Run | null;
 }
+
+/** アプリ全体の状態（画面はこれを読んで描き直す）。 */
+export const state: AppState = {
+  A: null,
+  B: null,
+  running: false,
+  stop: false,
+  run: null,
+};

@@ -1,11 +1,20 @@
 // 結果の書き出し（区間ごとのピーク画像を ZIP、フレームごとの値を CSV）
 
-import { ui } from './dom';
+import { ui } from './ui/dom';
 import { fetchPair, paint } from './frames';
-import { state } from './state';
-import { download, errorMessage, must, num } from './util';
-import { currentRanges, showError, syncButtons } from './view';
-import { makeZip, type ZipEntry } from './zip';
+import { state } from './types';
+import { errorMessage, must, num } from './lib/util';
+import { currentRanges, showError, syncButtons } from './ui/view';
+import { makeZip, type ZipEntry } from './lib/zip';
+
+function download(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
 
 /** 各区間のピークを再デコードし、左から A | B | 差分 を並べた PNG にして ZIP で保存する。 */
 export async function exportImages(): Promise<void> {

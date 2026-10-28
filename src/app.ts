@@ -2,15 +2,14 @@
 
 import './style.css';
 import { start, stop } from './compare';
-import { pickIndex } from './chart';
-import { ui } from './dom';
+import { pickIndex } from './ui/chart';
+import { ui } from './ui/dom';
 import { exportCsv, exportImages } from './exporter';
 import { inspect } from './frames';
 import { setFile } from './loader';
-import { state } from './state';
-import { SLOTS } from './types';
-import { num } from './util';
-import { drawGraph, refreshResults, refreshWarnings } from './view';
+import { SLOTS, state } from './types';
+import { num } from './lib/util';
+import { drawGraph, refreshResults, refreshWarnings } from './ui/view';
 
 /** 動画の選択とドロップ */
 function bindSlots(): void {

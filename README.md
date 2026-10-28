@@ -76,15 +76,14 @@ Cloudflare Workers の静的アセットとして公開する。設定は `wrang
 | `src/compare.ts` | 比較の実行（先頭から順にデコードして差分を記録） |
 | `src/frames.ts` | 任意フレームの再デコードと表示 |
 | `src/exporter.ts` | ZIP / CSV の書き出し |
-| `src/view.ts` | 状態の画面への反映（メッセージ、ボタン、グラフ、区間リスト） |
-| `src/settings.ts` | 設定欄の値の読み取り |
-| `src/dom.ts` | 画面の要素（型付き） |
-| `src/state.ts` / `src/types.ts` | アプリの状態と型 |
-| `src/util.ts` | 小さなユーティリティ |
-| `src/pairing.ts` | 2本のフレーム列の対応づけ |
-| `src/diff.ts` | 差分計算、区間検出、比較条件の警告 |
-| `src/chart.ts` | グラフ描画 |
-| `src/zip.ts` | 無圧縮 ZIP の書き出し |
+| `src/types.ts` | 型と、アプリ全体の状態 |
+| `src/ui/dom.ts` | 画面の要素（型付き）と、設定欄の値の読み取り |
+| `src/ui/view.ts` | 状態の画面への反映（メッセージ、ボタン、グラフ、区間リスト） |
+| `src/ui/chart.ts` | グラフ描画 |
+| `src/lib/diff.ts` | 差分計算、区間検出、比較条件の警告 |
+| `src/lib/pairing.ts` | 2本のフレーム列の対応づけ |
+| `src/lib/zip.ts` | 無圧縮 ZIP の書き出し |
+| `src/lib/util.ts` | 小さなユーティリティ |
 | `src/style.css` | スタイル |
 | `tsconfig.json` | TypeScript の設定（strict、出力なし） |
 | `vite.config.ts` | ビルド設定（CSP、ライセンス表記） |

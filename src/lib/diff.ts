@@ -1,6 +1,6 @@
 // 差分の計算と、比較条件のチェック（DOM に依存しない純粋関数）
 
-import type { Mode, ModeSetting, VideoInfo } from './types';
+import type { Mode, ModeSetting, VideoInfo } from '../types';
 
 type Pixels = ArrayLike<number>;
 type Timing = Pick<VideoInfo, 'w' | 'h' | 'fps' | 'duration'>;

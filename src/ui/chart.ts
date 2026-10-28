@@ -1,6 +1,6 @@
 // 差分グラフ（Canvas）。フレーム数が画素数より多いときは、画素列ごとの最大値で間引く（スパイクを落とさない）。
 
-import { must } from './util';
+import { must } from '../lib/util';
 
 /** クリック位置の逆引きに使う、描画時のレイアウト。 */
 export interface ChartLayout {

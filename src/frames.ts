@@ -1,12 +1,11 @@
 // 任意フレームの再デコードと描画（A / B / 差分）
 
 import type { VideoSample } from 'mediabunny';
-import { renderDiff, meanLumaDiff } from './diff';
-import { ui } from './dom';
-import { state } from './state';
-import type { Run } from './types';
-import { errorMessage, must } from './util';
-import { refreshResults, showCaptions, showError } from './view';
+import { renderDiff, meanLumaDiff } from './lib/diff';
+import { ui } from './ui/dom';
+import { state, type Run } from './types';
+import { errorMessage, must } from './lib/util';
+import { refreshResults, showCaptions, showError } from './ui/view';
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 

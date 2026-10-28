@@ -1,11 +1,10 @@
 // 動画ファイルの読み込み（枠 A / B ごと）
 
 import { ALL_FORMATS, BlobSource, Input } from 'mediabunny';
-import { ui } from './dom';
-import { state } from './state';
-import type { Slot, VideoInfo } from './types';
-import { errorMessage, num } from './util';
-import { refreshWarnings, resetRun, setMeta, showError } from './view';
+import { ui } from './ui/dom';
+import { state, type Slot, type VideoInfo } from './types';
+import { errorMessage, num } from './lib/util';
+import { refreshWarnings, resetRun, setMeta, showError } from './ui/view';
 
 // 1辺の上限（px）。これを超える動画はメモリ不足でタブが落ちうるため、読み込み時に拒否する。
 const MAX_SIDE = 4096;
