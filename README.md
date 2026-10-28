@@ -6,6 +6,9 @@
 - ブラウザだけで動きます。動画はどこにも送信されません
 - [Tsut-ps/diffm](https://github.com/Tsut-ps/diffm) の考え方を Web にしたものです
 
+<img width="1120" height="575" alt="image" src="https://github.com/user-attachments/assets/9df5fd12-3d90-4687-b83f-3303d889dbbe" />
+（立ち絵: 一止月サノツキさん）
+
 ## 使い方
 
 1. 動画 A（基準）と B（比較対象）を選ぶ（ドロップも可）
