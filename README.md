@@ -80,7 +80,7 @@ npm ci --ignore-scripts
 npm run dev        # 開発サーバー（http://localhost:5173/）
 npm run typecheck  # 型チェック
 npm run build      # 型チェックの後、dist/ に出力
-npm run preview    # dist/ の確認（CSP もここで確認）
+npm run preview    # dist/ の確認（meta の CSP のみ。応答ヘッダーも見るなら npx wrangler dev）
 ```
 
 - 開発サーバーは自分の PC からだけ使う（`--host` で公開しない）
@@ -105,6 +105,7 @@ Cloudflare Workers の静的アセットとして公開します（設定は `wr
 
 - `main` にプッシュすると、Cloudflare の Git 連携が `npm run build` → `npx wrangler deploy` で公開
 - 手元からは、`npm run build` の後に `npx wrangler deploy`
+- ビルド時に `dist/_headers` を出力し、Workers が CSP を応答ヘッダーでも付ける（meta と同じ内容に、埋め込みを防ぐ `frame-ancestors 'none'` を追加。`_headers` 自体は配信されない）
 
 ## ライセンス表記
 

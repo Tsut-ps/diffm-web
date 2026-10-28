@@ -12,6 +12,23 @@ const CSP = [
   "form-action 'none'",
 ].join('; ');
 
+// Cloudflare Workers が静的アセットの応答に付けるヘッダー（dist/_headers として出力）。
+// CSP は meta と同じ内容に、meta では効かない frame-ancestors（埋め込み防止）を足す。
+const HEADERS = `/*
+  Content-Security-Policy: ${CSP}; frame-ancestors 'none'
+`;
+
+/** ビルド時に _headers を出力する。 */
+function workersHeaders(): Plugin {
+  return {
+    name: 'workers-headers',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: '_headers', source: HEADERS });
+    },
+  };
+}
+
 /** ビルド時だけ CSP の meta を挿入する（開発サーバーはインラインのスタイルや通信を使うため）。 */
 function cspMeta(): Plugin {
   return {
@@ -39,7 +56,7 @@ const BANNER = `/*!
 export default defineConfig({
   // 相対パスで出力し、サブパスで公開しても、ローカルでも動くようにする
   base: './',
-  plugins: [cspMeta()],
+  plugins: [cspMeta(), workersHeaders()],
   build: {
     target: 'es2022',
     // ソースマップは公開しない
