@@ -73,7 +73,7 @@ Ryzen + RTX の行は、10 秒・30fps の合成映像を A と B の両方に�
 
 ## 開発
 
-Node.js 22 以上。
+Node.js 24（`.node-version` で固定。Workers Builds もこれを使う）。
 
 ```
 npm ci --ignore-scripts
