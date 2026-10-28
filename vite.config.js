@@ -37,7 +37,7 @@ const BANNER = `/*!
  */`;
 
 export default defineConfig({
-  // 相対パスで出力し、GitHub Pages のサブパス（/diffm-web/）でもローカルでも動くようにする
+  // 相対パスで出力し、サブパスで公開しても、ローカルでも動くようにする
   base: './',
   plugins: [cspMeta()],
   build: {

@@ -3,8 +3,6 @@
 2本の動画をフレーム単位で比較し、差分の明るさをグラフにする Web ツール。
 [Tsut-ps/diffm](https://github.com/Tsut-ps/diffm) の発想をブラウザで再現したもの。処理はすべてブラウザ内で行い、動画は送信しない。
 
-公開版: <https://tsut-ps.github.io/diffm-web/>
-
 ## 使い方
 
 1. 動画 A（基準）と B（比較対象）を選ぶ（ドロップも可）
@@ -29,10 +27,12 @@ npm run preview  # dist/ を確認
 
 ## 公開
 
-`main` にプッシュすると、GitHub Actions（`.github/workflows/pages.yml`）がビルドして `dist/` だけを GitHub Pages に公開する。
+Cloudflare Workers の静的アセットとして公開する。設定は `wrangler.jsonc`（Worker 名 `diffm`、配信するのは `dist/` だけ）。
 
-- 初回のみ、リポジトリの Settings → Pages → Source を「GitHub Actions」にする
-- Actions はコミットのハッシュで固定し、権限はジョブごとに最小限にしている
+- `main` にプッシュすると、Cloudflare の Git 連携がビルドして公開する
+  - ビルドコマンド: `npm run build`
+  - デプロイコマンド: `npx wrangler deploy`
+- 手元から公開するときは、`npm run build` の後に `npx wrangler deploy`
 - 依存はロックファイルどおりに入れ、インストール時のスクリプトは実行しない
 
 ## 仕組み
@@ -77,7 +77,7 @@ npm run preview  # dist/ を確認
 | `src/zip.js` | 無圧縮 ZIP の書き出し |
 | `src/style.css` | スタイル |
 | `vite.config.js` | ビルド設定（CSP、ライセンス表記） |
-| `.github/workflows/pages.yml` | GitHub Pages への公開 |
+| `wrangler.jsonc` | Cloudflare Workers への公開設定 |
 
 ## ライセンス表記
 
