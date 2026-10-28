@@ -59,6 +59,8 @@ export default defineConfig({
   plugins: [cspMeta(), workersHeaders()],
   build: {
     target: 'es2022',
+    // 古いブラウザ向けの modulepreload 補助処理（fetch を含む）は不要。WebCodecs が動くブラウザは対応済み
+    modulePreload: { polyfill: false },
     // ソースマップは公開しない
     sourcemap: false,
     rolldownOptions: {
