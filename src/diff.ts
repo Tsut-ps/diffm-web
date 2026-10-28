@@ -1,7 +1,19 @@
 // 差分の計算と、比較条件のチェック（DOM に依存しない純粋関数）
 
+import type { Mode, ModeSetting, VideoInfo } from './types';
+
+type Pixels = ArrayLike<number>;
+type Timing = Pick<VideoInfo, 'w' | 'h' | 'fps' | 'duration'>;
+
+/** しきい値以上が連続する区間。peak は区間内で最大のフレーム番号。 */
+export interface Range {
+  start: number;
+  end: number;
+  peak: number;
+}
+
 /** 2つの RGBA 配列の差分の明るさ（輝度の平均、0〜255）。diffm の「brightness」に相当。 */
-export function meanLumaDiff(a, b) {
+export function meanLumaDiff(a: Pixels, b: Pixels): number {
   const n = a.length;
   let total = 0;
   for (let i = 0; i < n; i += 4) {
@@ -14,7 +26,7 @@ export function meanLumaDiff(a, b) {
 }
 
 /** 表示用の差分画像（チャンネルごとの絶対差 × gain）を out に書く。 */
-export function renderDiff(a, b, out, gain = 1) {
+export function renderDiff(a: Pixels, b: Pixels, out: Uint8ClampedArray, gain = 1): void {
   for (let i = 0; i < a.length; i += 4) {
     out[i] = Math.abs(a[i] - b[i]) * gain;
     out[i + 1] = Math.abs(a[i + 1] - b[i + 1]) * gain;
@@ -23,10 +35,10 @@ export function renderDiff(a, b, out, gain = 1) {
   }
 }
 
-/** しきい値以上が連続する区間を返す。peak は区間内で最大のフレーム番号。 */
-export function findRanges(values, threshold) {
-  const ranges = [];
-  let cur = null;
+/** しきい値以上が連続する区間を返す。 */
+export function findRanges(values: readonly number[], threshold: number): Range[] {
+  const ranges: Range[] = [];
+  let cur: Range | null = null;
   for (let i = 0; i < values.length; i++) {
     if (values[i] >= threshold) {
       if (!cur) cur = { start: i, end: i, peak: i };
@@ -41,17 +53,17 @@ export function findRanges(values, threshold) {
   return ranges;
 }
 
-const fpsDiffers = (a, b) => Math.abs(a - b) / Math.max(a, b) > 0.005;
+const fpsDiffers = (a: number, b: number) => Math.abs(a - b) / Math.max(a, b) > 0.005;
 
 /** 比較方法の決定。auto は fps が違えば時刻、同じならフレーム番号。 */
-export function resolveMode(selected, a, b) {
-  if (selected === 'index' || selected === 'time') return selected;
+export function resolveMode(selected: ModeSetting, a: Pick<Timing, 'fps'>, b: Pick<Timing, 'fps'>): Mode {
+  if (selected !== 'auto') return selected;
   return fpsDiffers(a.fps, b.fps) ? 'time' : 'index';
 }
 
-/** 比較条件の警告（日本語）。a / b は { w, h, fps, duration }。 */
-export function compareInfo(a, b, mode) {
-  const warnings = [];
+/** 比較条件の警告（日本語）。 */
+export function compareInfo(a: Timing, b: Timing, mode: Mode): string[] {
+  const warnings: string[] = [];
 
   if (a.w !== b.w || a.h !== b.h) {
     let msg = `解像度が違います（A ${a.w}×${a.h} / B ${b.w}×${b.h}）。B を A の大きさに拡縮して比較するため、差分が大きく出ます。`;

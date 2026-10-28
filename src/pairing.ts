@@ -1,17 +1,32 @@
 // 2本のフレーム列（非同期イテレータ）を1フレームずつ対応づける。
-// sample は { timestamp, duration, close() } を持つ。
 // 所有権: sample はこの関数が close する。呼び出し側が使えるのは、次の反復に進むまで。
 // シークは使わず、先頭から順にデコードするだけなので、フレームはずれない。
 
-async function releaseIterators(itA, itB) {
+/** 対応づけの対象。mediabunny の VideoSample がこの形を満たす。 */
+export interface FrameSample {
+  timestamp: number;
+  duration: number;
+  close(): void;
+}
+
+export interface FramePair<T extends FrameSample> {
+  index: number;
+  a: T;
+  b: T;
+}
+
+async function releaseIterators(itA: AsyncIterator<unknown>, itB: AsyncIterator<unknown>): Promise<void> {
   await Promise.allSettled([itA.return?.(), itB.return?.()]);
 }
 
 /** フレーム番号で対応づける（A の n 番目 ↔ B の n 番目）。どちらかが尽きたら終了。 */
-export async function* pairByIndex(itA, itB) {
+export async function* pairByIndex<T extends FrameSample>(
+  itA: AsyncIterator<T>,
+  itB: AsyncIterator<T>,
+): AsyncGenerator<FramePair<T>, void, undefined> {
   let index = 0;
-  let a = null;
-  let b = null;
+  let a: T | null = null;
+  let b: T | null = null;
   try {
     while (true) {
       const [ra, rb] = await Promise.all([itA.next(), itB.next()]);
@@ -37,11 +52,16 @@ export async function* pairByIndex(itA, itB) {
  * タイムスタンプの丸め（mkv/webm のミリ秒など）を吸収するため、フレーム長の 1/4 だけ許容する。
  * offA / offB は各動画の先頭タイムスタンプ（開始オフセットを揃えるため）。
  */
-export async function* pairByTime(itA, itB, offA = 0, offB = 0) {
+export async function* pairByTime<T extends FrameSample>(
+  itA: AsyncIterator<T>,
+  itB: AsyncIterator<T>,
+  offA = 0,
+  offB = 0,
+): AsyncGenerator<FramePair<T>, void, undefined> {
   let index = 0;
-  let a = null;
-  let bCur = null;
-  let bNext = null;
+  let a: T | null = null;
+  let bCur: T | null = null;
+  let bNext: T | null = null;
   try {
     const first = await itB.next();
     if (first.done) return;

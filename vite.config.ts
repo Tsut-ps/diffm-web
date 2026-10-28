@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 // 公開物に付ける CSP。外部への通信は一切許可しない。
 // mediabunny は内部で blob: のワーカーを使うため worker-src blob: のみ許可する。
@@ -13,7 +13,7 @@ const CSP = [
 ].join('; ');
 
 /** ビルド時だけ CSP の meta を挿入する（開発サーバーはインラインのスタイルや通信を使うため）。 */
-function cspMeta() {
+function cspMeta(): Plugin {
   return {
     name: 'csp-meta',
     apply: 'build',

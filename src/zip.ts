@@ -1,5 +1,10 @@
 // 無圧縮（store）の最小 ZIP ライター。PNG は圧縮済みなので store で十分。
 
+export interface ZipEntry {
+  name: string;
+  data: Uint8Array<ArrayBuffer>;
+}
+
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -10,24 +15,24 @@ const CRC_TABLE = (() => {
   return t;
 })();
 
-export function crc32(bytes) {
+export function crc32(bytes: Uint8Array): number {
   let c = 0xffffffff;
   for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
 
-function dosDateTime(d) {
+function dosDateTime(d: Date): { time: number; date: number } {
   const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
   const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
   return { time, date };
 }
 
-/** entries: [{ name: string, data: Uint8Array }] → Blob (application/zip) */
-export function makeZip(entries, now = new Date()) {
+export function makeZip(entries: readonly ZipEntry[], now = new Date()): Blob {
   const enc = new TextEncoder();
   const { time, date } = dosDateTime(now);
-  const parts = [];
-  const central = [];
+  const parts: BlobPart[] = [];
+  const central: BlobPart[] = [];
+  let centralSize = 0;
   let offset = 0;
 
   for (const { name, data } of entries) {
@@ -67,16 +72,16 @@ export function makeZip(entries, now = new Date()) {
     cd.setUint32(38, 0, true);
     cd.setUint32(42, offset, true);
     central.push(cd.buffer, nameBytes);
+    centralSize += cd.byteLength + nameBytes.length;
 
     offset += 30 + nameBytes.length + data.length;
   }
 
-  const cdSize = central.reduce((s, p) => s + (p.byteLength ?? p.length), 0);
   const end = new DataView(new ArrayBuffer(22));
   end.setUint32(0, 0x06054b50, true);
   end.setUint16(8, entries.length, true);
   end.setUint16(10, entries.length, true);
-  end.setUint32(12, cdSize, true);
+  end.setUint32(12, centralSize, true);
   end.setUint32(16, offset, true);
 
   return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });

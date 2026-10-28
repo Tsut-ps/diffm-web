@@ -17,13 +17,14 @@ Node.js 22 以上。
 ```
 npm ci --ignore-scripts
 npm run dev      # 開発サーバー（http://localhost:5173/）
-npm run build    # dist/ に公開物を出力
-npm run preview  # dist/ を確認
+npm run typecheck  # 型チェック（tsc）
+npm run build      # 型チェックの後、dist/ に公開物を出力
+npm run preview    # dist/ を確認
 ```
 
 - 開発サーバーは自分の PC からだけ使う（`--host` で外部に公開しない）
 - CSP はビルド時だけ付く（開発サーバーとは両立しないため）。CSP の確認は `npm run preview` で行う
-- mediabunny の更新: `npm install --ignore-scripts --save-exact mediabunny@<版>` の後、`vite.config.js` と `index.html` にある版とソースの URL も直す
+- mediabunny の更新: `npm install --ignore-scripts --save-exact mediabunny@<版>` の後、`vite.config.ts` と `index.html` にある版とソースの URL も直す
 
 ## 公開
 
@@ -70,13 +71,23 @@ Cloudflare Workers の静的アセットとして公開する。設定は `wrang
 | ファイル | 役割 |
 |---|---|
 | `index.html` | 画面 |
-| `src/app.js` | 読み込み、実行、グラフ操作、書き出し |
-| `src/pairing.js` | 2本のフレーム列の対応づけ |
-| `src/diff.js` | 差分計算、区間検出、比較条件の警告 |
-| `src/chart.js` | グラフ描画 |
-| `src/zip.js` | 無圧縮 ZIP の書き出し |
+| `src/app.ts` | エントリーポイント。画面のイベントを各機能につなぐ |
+| `src/loader.ts` | 動画ファイルの読み込み |
+| `src/compare.ts` | 比較の実行（先頭から順にデコードして差分を記録） |
+| `src/frames.ts` | 任意フレームの再デコードと表示 |
+| `src/exporter.ts` | ZIP / CSV の書き出し |
+| `src/view.ts` | 状態の画面への反映（メッセージ、ボタン、グラフ、区間リスト） |
+| `src/settings.ts` | 設定欄の値の読み取り |
+| `src/dom.ts` | 画面の要素（型付き） |
+| `src/state.ts` / `src/types.ts` | アプリの状態と型 |
+| `src/util.ts` | 小さなユーティリティ |
+| `src/pairing.ts` | 2本のフレーム列の対応づけ |
+| `src/diff.ts` | 差分計算、区間検出、比較条件の警告 |
+| `src/chart.ts` | グラフ描画 |
+| `src/zip.ts` | 無圧縮 ZIP の書き出し |
 | `src/style.css` | スタイル |
-| `vite.config.js` | ビルド設定（CSP、ライセンス表記） |
+| `tsconfig.json` | TypeScript の設定（strict、出力なし） |
+| `vite.config.ts` | ビルド設定（CSP、ライセンス表記） |
 | `wrangler.jsonc` | Cloudflare Workers への公開設定 |
 
 ## ライセンス表記

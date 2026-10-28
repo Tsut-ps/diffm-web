@@ -1,8 +1,31 @@
 // 差分グラフ（Canvas）。フレーム数が画素数より多いときは、画素列ごとの最大値で間引く（スパイクを落とさない）。
 
+import { must } from './util';
+
+/** クリック位置の逆引きに使う、描画時のレイアウト。 */
+export interface ChartLayout {
+  /** プロット領域の左端（CSS px） */
+  l: number;
+  plotW: number;
+  /** 横軸のフレーム数（見込みを含む） */
+  total: number;
+}
+
+export interface ChartOptions {
+  values: readonly number[];
+  /** 完了前でも横軸を確定させるための、総フレーム数の見込み */
+  expectedTotal?: number;
+  threshold?: number | null;
+  selected?: number;
+  hover?: number;
+}
+
+/** 折れ線の点: [x, y, 値] */
+type Point = [x: number, y: number, value: number];
+
 const M = { l: 48, r: 12, t: 10, b: 26 };
 
-function niceMax(v) {
+function niceMax(v: number): number {
   if (!(v > 0)) return 1;
   const p = 10 ** Math.floor(Math.log10(v));
   for (const m of [1, 2, 5, 10]) if (m * p >= v) return m * p;
@@ -10,7 +33,10 @@ function niceMax(v) {
 }
 
 /** 描画して、クリック位置の逆引きに使うレイアウトを返す。 */
-export function drawChart(canvas, { values, expectedTotal = 0, threshold = null, selected = -1, hover = -1 }) {
+export function drawChart(
+  canvas: HTMLCanvasElement,
+  { values, expectedTotal = 0, threshold = null, selected = -1, hover = -1 }: ChartOptions,
+): ChartLayout {
   const dpr = window.devicePixelRatio || 1;
   const cw = canvas.clientWidth;
   const ch = canvas.clientHeight;
@@ -20,12 +46,12 @@ export function drawChart(canvas, { values, expectedTotal = 0, threshold = null,
     canvas.width = pw;
     canvas.height = ph;
   }
-  const ctx = canvas.getContext('2d');
+  const ctx = must(canvas.getContext('2d'));
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
 
   const css = getComputedStyle(canvas);
-  const col = (name) => css.getPropertyValue(name).trim();
+  const col = (name: string) => css.getPropertyValue(name).trim();
   const font = css.fontFamily;
 
   const plotW = Math.max(1, cw - M.l - M.r);
@@ -38,8 +64,8 @@ export function drawChart(canvas, { values, expectedTotal = 0, threshold = null,
   if (threshold != null && threshold * 1.15 > vmax) vmax = threshold * 1.15;
   const yMax = niceMax(vmax);
 
-  const x = (i) => M.l + (i / (total - 1)) * plotW;
-  const y = (v) => M.t + plotH - (v / yMax) * plotH;
+  const x = (i: number) => M.l + (i / (total - 1)) * plotW;
+  const y = (v: number) => M.t + plotH - (v / yMax) * plotH;
 
   // グリッドと軸ラベル
   ctx.font = `11px ${font}`;
@@ -55,16 +81,21 @@ export function drawChart(canvas, { values, expectedTotal = 0, threshold = null,
     ctx.moveTo(M.l, yy);
     ctx.lineTo(M.l + plotW, yy);
     ctx.stroke();
-    ctx.fillText(+v.toFixed(2) + '', M.l - 6, yy);
+    ctx.fillText(String(+v.toFixed(2)), M.l - 6, yy);
   }
   ctx.textBaseline = 'top';
-  for (const [i, align] of [[0, 'left'], [Math.round((total - 1) / 2), 'center'], [total - 1, 'right']]) {
+  const ticks: [number, CanvasTextAlign][] = [
+    [0, 'left'],
+    [Math.round((total - 1) / 2), 'center'],
+    [total - 1, 'right'],
+  ];
+  for (const [i, align] of ticks) {
     ctx.textAlign = align;
     ctx.fillText(`#${i}`, x(i), M.t + plotH + 6);
   }
 
   // 折れ線
-  const points = [];
+  const points: Point[] = [];
   if (n > 0) {
     if (n <= plotW * 2) {
       for (let i = 0; i < n; i++) points.push([x(i), y(values[i]), values[i]]);
@@ -113,7 +144,7 @@ export function drawChart(canvas, { values, expectedTotal = 0, threshold = null,
   }
 
   // ホバー / 選択
-  const vline = (i, color, width) => {
+  const vline = (i: number, color: string, width: number) => {
     if (i < 0 || i >= total) return;
     const xx = Math.round(x(i)) + 0.5;
     ctx.strokeStyle = color;
@@ -130,7 +161,7 @@ export function drawChart(canvas, { values, expectedTotal = 0, threshold = null,
 }
 
 /** キャンバス内の x（CSS px）から、近傍で最大のフレーム番号を返す（無ければ -1）。 */
-export function pickIndex(layout, values, cssX) {
+export function pickIndex(layout: ChartLayout | null, values: readonly number[], cssX: number): number {
   if (!layout || values.length === 0) return -1;
   const f = Math.round(((cssX - layout.l) / layout.plotW) * (layout.total - 1));
   const span = Math.max(0, Math.round(layout.total / layout.plotW / 2));
