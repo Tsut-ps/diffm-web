@@ -1,59 +1,41 @@
 # diffm-web
 
-2本の動画をフレーム単位で比較し、差分の明るさをグラフにする Web ツール。
-[Tsut-ps/diffm](https://github.com/Tsut-ps/diffm) の発想をブラウザで再現したもの。処理はすべてブラウザ内で行い、動画は送信しない。
+2本の動画を1フレームずつ比べて、どこがどれだけ違うかをグラフにするツール  
+エンコード設定を変えたときの画質劣化や、編集で意図せず変わった箇所を見つけるのに使えます
+
+- ブラウザだけで動きます。動画はどこにも送信されません
+- [Tsut-ps/diffm](https://github.com/Tsut-ps/diffm) の考え方を Web にしたものです
 
 ## 使い方
 
 1. 動画 A（基準）と B（比較対象）を選ぶ（ドロップも可）
-2. 「開始」を押す
-3. グラフの点、または「しきい値を超えた区間」をクリックすると、そのフレームを A / B / 差分で表示
-4. 「各区間のピークを ZIP で保存」で、区間ごとのピークフレームを PNG（左から A | B | 差分）で保存。「CSV で保存」でフレームごとの値を保存
+2. 「開始」を押す（「停止」で途中までの結果も使えます）
+3. グラフの点か、しきい値を超えた区間をクリックすると、そのフレームを A / B / 差分で表示
+4. 「各区間のピークを ZIP で保存」（PNG、左から A | B | 差分）、「CSV で保存」（全フレームの値）
 
-## 開発
+**差分の値**は、画素ごとの色の差を輝度で平均したものです。0 なら完全に同じで、最大は 255。しきい値以上が続く範囲を「区間」として並べます。
 
-Node.js 22 以上。
+## 設定
 
-```
-npm ci --ignore-scripts
-npm run dev      # 開発サーバー（http://localhost:5173/）
-npm run typecheck  # 型チェック（tsc）
-npm run build      # 型チェックの後、dist/ に公開物を出力
-npm run preview    # dist/ を確認
-```
-
-- 開発サーバーは自分の PC からだけ使う（`--host` で外部に公開しない）
-- CSP はビルド時だけ付く（開発サーバーとは両立しないため）。CSP の確認は `npm run preview` で行う
-- mediabunny の更新: `npm install --ignore-scripts --save-exact mediabunny@<版>` の後、`vite.config.ts` と `index.html` にある版とソースの URL も直す
-
-## 公開
-
-Cloudflare Workers の静的アセットとして公開する。設定は `wrangler.jsonc`（Worker 名 `diffm`、配信するのは `dist/` だけ）。
-
-- `main` にプッシュすると、Cloudflare の Git 連携がビルドして公開する
-  - ビルドコマンド: `npm run build`
-  - デプロイコマンド: `npx wrangler deploy`
-- 手元から公開するときは、`npm run build` の後に `npx wrangler deploy`
-- 依存はロックファイルどおりに入れ、インストール時のスクリプトは実行しない
-
-## 仕組み
-
-- [mediabunny](https://mediabunny.dev/) と WebCodecs で、両動画を先頭から順にデコードする。**シークしないので、フレームはずれない**
-- 差分 = 画素ごとの絶対差の輝度平均（0〜255）。diffm の brightness と同じ考え方
-- 結果として保持するのはフレームごとの数値とタイムスタンプだけ。画像は表示・保存のときに、そのフレームだけ再デコードする
-- 描画間隔は表示の更新頻度のみに効く。計算は全フレームで行う
+| 項目 | 内容 |
+|---|---|
+| 対応づけ | A と B のどのフレーム同士を比べるか（下の表）。初期値は自動 |
+| 計算サイズ | 小さいほど速く、正確さは下がる |
+| 描画間隔 | 画面を更新する間隔。結果には影響しない |
+| 差分の強調 | 差分画像の表示倍率。値には影響しない |
+| しきい値 | 「違う」とみなす値。終了後に変えると区間もすぐ更新される |
 
 ## 対応づけ
 
 | 方法 | 内容 |
 |---|---|
-| フレーム番号 | A の n 番目 ↔ B の n 番目。どちらかが尽きたら終了 |
+| フレーム番号 | A の n 番目と B の n 番目を比べる。どちらかが尽きたら終了 |
 | 時刻 | A の各フレームの時刻に表示されている B のフレームを当てる（B は重複・欠落する） |
-| 自動（既定） | fps が違えば時刻、同じならフレーム番号 |
+| 自動（初期値） | fps が違えば時刻、同じならフレーム番号 |
 
 ## 警告
 
-比較条件が違うと、画面に警告を出す（比較は続行する）。
+比較条件が違うと画面に警告を出します（比較は続行）。
 
 - 解像度が違う: B を A の大きさに拡縮する（縦横比が違えば引き伸ばす）
 - fps が違う: 対応づけ方法に応じた注意
@@ -61,38 +43,55 @@ Cloudflare Workers の静的アセットとして公開する。設定は `wrang
 
 ## 動作環境と制約
 
-- WebCodecs が使えるモダンブラウザ。デコードできるコーデックはブラウザ次第（H.264 / VP9 / AV1 など）。非対応なら読み込み時にエラーを出す
-- 速度の目安: 1080p で約 14〜18 fps、4K で約 1.5〜3 fps（GPU なしのヘッドレス Chrome での実測）。「計算サイズ」を下げると速くなる（正確さは下がる）
-- 解像度の上限は 1 辺 4096px（4K UHD 3840×2160、DCI 4K 4096×2160 を含む）。超える動画は読み込み時に拒否する
-- 外部への通信はしない（CSP で通信先を一切許可していない）
+- WebCodecs が使えるモダンブラウザが必要。デコードできるコーデックはブラウザ次第（H.264 / VP9 / AV1 など）で、読めない動画は読み込み時にエラー
+- 解像度は 1 辺 4096px まで（4K UHD / DCI 4K を含む）。超えると読み込み時に断る
+- 速さの目安: 1080p で約 14〜18 fps、4K で約 1.5〜3 fps（GPU なしのヘッドレス Chrome での実測）
+- 外部へは通信しない（CSP で通信先を許可していない）
 
-## 構成
+## 仕組み
 
-| ファイル | 役割 |
-|---|---|
-| `index.html` | 画面 |
-| `src/app.ts` | エントリーポイント。画面のイベントを各機能につなぐ |
-| `src/loader.ts` | 動画ファイルの読み込み |
-| `src/compare.ts` | 比較の実行（先頭から順にデコードして差分を記録） |
-| `src/frames.ts` | 任意フレームの再デコードと表示 |
-| `src/exporter.ts` | ZIP / CSV の書き出し |
-| `src/types.ts` | 型と、アプリ全体の状態 |
-| `src/ui/dom.ts` | 画面の要素（型付き）と、設定欄の値の読み取り |
-| `src/ui/view.ts` | 状態の画面への反映（メッセージ、ボタン、グラフ、区間リスト） |
-| `src/ui/chart.ts` | グラフ描画 |
-| `src/lib/diff.ts` | 差分計算、区間検出、比較条件の警告 |
-| `src/lib/pairing.ts` | 2本のフレーム列の対応づけ |
-| `src/lib/zip.ts` | 無圧縮 ZIP の書き出し |
-| `src/lib/util.ts` | 小さなユーティリティ |
-| `src/style.css` | スタイル |
-| `tsconfig.json` | TypeScript の設定（strict、出力なし） |
-| `vite.config.ts` | ビルド設定（CSP、ライセンス表記） |
-| `wrangler.jsonc` | Cloudflare Workers への公開設定 |
+[mediabunny](https://mediabunny.dev/) と WebCodecs で、2本を先頭から順にデコードします。シークしないので、フレームはずれません。
+記録するのは数値とタイムスタンプだけで、画像は表示・保存のときに、そのフレームだけ再デコードします。
+
+## 開発
+
+Node.js 22 以上。
+
+```
+npm ci --ignore-scripts
+npm run dev        # 開発サーバー（http://localhost:5173/）
+npm run typecheck  # 型チェック
+npm run build      # 型チェックの後、dist/ に出力
+npm run preview    # dist/ の確認（CSP もここで確認）
+```
+
+- 開発サーバーは自分の PC からだけ使う（`--host` で公開しない）
+- CSP はビルド時だけ付く（開発サーバーと両立しないため）
+- mediabunny の更新: `npm install --ignore-scripts --save-exact mediabunny@<版>` の後、`vite.config.ts` と `index.html` の版とソース URL も直す
+
+```
+src/
+  app.ts       エントリーポイント（イベントを各機能につなぐ）
+  loader.ts    動画の読み込み
+  compare.ts   比較の実行
+  frames.ts    任意フレームの再表示
+  exporter.ts  ZIP / CSV の書き出し
+  types.ts     型と状態
+  lib/         DOM に触らない処理（差分計算、対応づけ、ZIP）
+  ui/          画面の要素、反映、グラフ
+```
+
+## 公開
+
+Cloudflare Workers の静的アセットとして公開します（設定は `wrangler.jsonc`、配信は `dist/` のみ）。
+
+- `main` にプッシュすると、Cloudflare の Git 連携が `npm run build` → `npx wrangler deploy` で公開
+- 手元からは、`npm run build` の後に `npx wrangler deploy`
 
 ## ライセンス表記
 
-公開物には [mediabunny](https://github.com/Vanilagy/mediabunny) 1.62.1 を含む。
+公開物には [mediabunny](https://github.com/Vanilagy/mediabunny) 1.62.1 を含みます。
 
 - ライセンス: [MPL-2.0](https://mozilla.org/MPL/2.0/)
 - ソースコード: <https://github.com/Vanilagy/mediabunny/tree/f630141a4ac2936d00af14bf8ff2c5bb62b66150>（1.62.1 の公開元コミット）
-- ビルドした JS の先頭と、画面の下部に同じ表記を出している
+- ビルドした JS の先頭と、画面の下部に同じ表記を出しています
