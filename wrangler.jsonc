@@ -2,6 +2,8 @@
   // Cloudflare 上の Worker 名（Git 連携の設定と一致させる）
   "name": "diffm",
   "compatibility_date": "2026-10-29",
+  // バージョンごとのプレビュー URL は出さない
+  "preview_urls": false,
   // 静的ファイルだけを配信する（Worker のコードはない）
   "assets": {
     "directory": "./dist"
