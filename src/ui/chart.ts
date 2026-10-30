@@ -193,6 +193,16 @@ export function drawChart(
   return { l: M.l, plotW, total };
 }
 
+/**
+ * キャンバス内の x（CSS px）が指すフレーム番号を、そのまま返す（押しながら動かすときに使う）。
+ * 描いた範囲の外は、端のフレームにする。比較済みのフレームが無ければ -1。
+ */
+export function frameAt(layout: ChartLayout | null, count: number, cssX: number): number {
+  if (!layout || count === 0) return -1;
+  const f = Math.round(((cssX - layout.l) / layout.plotW) * (layout.total - 1));
+  return Math.min(count - 1, Math.max(0, f));
+}
+
 /** キャンバス内の x（CSS px）から、近傍で最大のフレーム番号を返す（無ければ -1）。 */
 export function pickIndex(layout: ChartLayout | null, values: readonly number[], cssX: number): number {
   if (!layout || values.length === 0) return -1;

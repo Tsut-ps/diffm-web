@@ -2,7 +2,7 @@
 
 import './style.css';
 import { start, stop } from './compare';
-import { pickIndex } from './ui/chart';
+import { frameAt, pickIndex } from './ui/chart';
 import { ui } from './ui/dom';
 import { exportCsv, exportImages } from './exporter';
 import { inspect } from './frames';
@@ -92,15 +92,60 @@ function dropToSlots(files: File[]): void {
   else ui.status.textContent = '入れ替えるには、A か B の枠にドロップしてください。';
 }
 
-/** グラフの操作: ホバーで値、クリックでそのフレームを表示 */
+// グラフを押している間は、そのフレームに追従して表示する。フレームの取得は重いので、取得中に動かした分は
+// 飛ばして、最後の位置だけを待たせる（選択線は、取得を待たずに、すぐ動かす）。
+let followTarget: number | null = null;
+let following = false;
+
+async function followFrame(i: number): Promise<void> {
+  const run = state.run;
+  if (!run || state.running) return;
+  run.selected = i;
+  drawGraph();
+  followTarget = i;
+  if (following) return;
+  following = true;
+  try {
+    while (followTarget !== null) {
+      const next = followTarget;
+      followTarget = null;
+      await inspect(next);
+    }
+  } finally {
+    following = false;
+  }
+}
+
+/** グラフの操作: ホバーで値、押すとそのフレームを表示、押したまま動かすとフレームが追従する */
 function bindChart(): void {
   const cssX = (e: MouseEvent) => e.clientX - ui.chart.getBoundingClientRect().left;
+  let pressed = false;
+
+  ui.chart.addEventListener('pointerdown', (e) => {
+    const run = state.run;
+    if (e.button !== 0 || !run || run.values.length === 0) return;
+    pressed = true;
+    try {
+      ui.chart.setPointerCapture(e.pointerId); // グラフの外へ動かしても、追従を続ける
+    } catch {
+      // 取れなくても動く（グラフの上にいる間だけ追従する）
+    }
+    // 押した瞬間は、近くの山の頂点に吸い付かせる（細い山も選びやすい）。動かし始めたら、位置どおりのフレーム
+    const i = pickIndex(run.layout, run.values, cssX(e));
+    if (i >= 0) void followFrame(i);
+  });
+  const release = () => {
+    pressed = false;
+  };
+  ui.chart.addEventListener('pointerup', release);
+  ui.chart.addEventListener('pointercancel', release);
 
   ui.chart.addEventListener('pointermove', (e) => {
     const run = state.run;
     if (!run || run.values.length === 0) return;
-    const i = pickIndex(run.layout, run.values, cssX(e));
+    const i = pressed ? frameAt(run.layout, run.values.length, cssX(e)) : pickIndex(run.layout, run.values, cssX(e));
     if (i < 0) return;
+    if (pressed && i !== run.selected) void followFrame(i);
     run.hover = i;
     drawGraph();
     ui.tip.hidden = false;
@@ -118,12 +163,6 @@ function bindChart(): void {
       state.run.hover = -1;
       drawGraph();
     }
-  });
-  ui.chart.addEventListener('click', (e) => {
-    const run = state.run;
-    if (!run) return;
-    const i = pickIndex(run.layout, run.values, cssX(e));
-    if (i >= 0) void inspect(i);
   });
 }
 
