@@ -3,11 +3,7 @@
 
 .player { height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--gap); }
 
-.ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.ico .f { fill: currentColor; stroke: none; }
-
 /* ヘッダーの操作 */
-.pl-count { font: 500 12.5px var(--font-mono); color: var(--muted); }
 
 .seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--border); border-radius: calc(var(--r-ctl) + 3px); }
 /* 枠（余白 3px + 線 1px）を含めた全体の高さを、他の操作部品と同じ --h-ctl にする */
@@ -16,8 +12,6 @@
 .seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
 .seg button[aria-pressed="true"] .ico { color: var(--accent); }
 
-.icon { width: var(--h-ctl); height: var(--h-ctl); display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--muted); }
-.icon:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
 .icon.tog[aria-pressed="true"] { color: var(--accent); }
 .mute[aria-pressed="false"] { color: var(--text); }
 .mute[aria-pressed="true"] .on, .mute[aria-pressed="false"] .off { display: none; }
@@ -28,18 +22,42 @@
 .pl-stage[data-layout="h"] { grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
 .pl-stage[data-layout="v"] { grid-template-rows: repeat(var(--n, 2), minmax(0, 1fr)); grid-template-columns: minmax(0, 1fr); }
 
-.tile { margin: 0; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+/* 動画の枠。見出し（名前・開始ズレ・ミュート・外す）は、枠の形で置き場所を変える。
+   縦長の枠: 上に置く / 横長の枠: 動画の左右にできる余白を使い、90度回して左の縦タブにする。
+   （横長の枠の判定は、player.ts の STRIP_ASPECT と、縦タブの幅は STRIP_WIDTH と合わせる） */
+.tile { margin: 0; min-width: 0; min-height: 0; overflow: hidden; container: tile / size; }
+.tile-in { height: 100%; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .cap { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 40px; padding: 4px 6px 4px 12px; }
 .cap .name { flex: 1 1 5rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .shift { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .shift .field { width: 6.4em; min-height: 26px; padding: 0 6px; font-size: 12.5px; }
 .tile video { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; background: var(--tile); object-fit: contain; }
 
+/* 横長の枠: 上の帯を、そのまま -90 度回して左の縦タブにする。
+   並びも同じまま、下から上へ（名前 → 開始ズレ → ミュート → 外す）。文字も入力欄も、一緒に回る。
+   sideways-lr に対応していないブラウザでは、上の帯のままにする */
+@supports (writing-mode: sideways-lr) {
+  @container tile (min-aspect-ratio: 3 / 2) {
+    .tile-in { grid-template-rows: none; grid-template-columns: auto minmax(0, 1fr); }
+    .cap {
+      writing-mode: sideways-lr; flex-wrap: nowrap;
+      width: 40px; min-height: 0; padding: 6px 4px 12px; /* 上の帯の「右 / 下 / 左」の余白が、上 / 右 / 下 に回る */
+      border-right: 1px solid var(--border);
+    }
+    /* 名前は、残りの長さに合わせて縮み、はみ出す分は省略する */
+    .cap .name { flex: 1 1 0; min-height: 0; }
+    /* 入力欄も回すので、長さ（縦）と太さ（横）を入れ替える。幅が狭いので、増減ボタンは隠す（↑ ↓ キーでは動かせる） */
+    .shift .field {
+      width: 26px; min-width: 0; height: 5.6em; min-height: 0; padding: 6px 0; text-align: end;
+      appearance: textfield;
+    }
+    .shift .field::-webkit-inner-spin-button, .shift .field::-webkit-outer-spin-button { appearance: none; margin: 0; }
+  }
+}
+
 /* 空のときは、舞台全体が1つの受け口になる */
 .pl-cta { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--panel); }
 .pl-cta-box { display: grid; justify-items: center; gap: var(--gap); max-width: min(100%, 420px); text-align: center; }
-.pl-cta-box p { margin: 0; color: var(--muted); text-wrap: pretty; }
-.pl-keys { font: 12px var(--font-mono); color: var(--muted); }
 
 /* 再生バー */
 .transport {

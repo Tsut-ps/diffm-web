@@ -74,8 +74,8 @@ export function compareInfo(a: Timing, b: Timing, mode: Mode): string[] {
   if (fpsDiffers(a.fps, b.fps)) {
     warnings.push(
       mode === 'time'
-        ? `fps が違います（A ${a.fps.toFixed(2)} / B ${b.fps.toFixed(2)}）。時刻で対応づけるため、B のフレームが重複・欠落します。`
-        : `fps が違います（A ${a.fps.toFixed(2)} / B ${b.fps.toFixed(2)}）。フレーム番号で対応づけるため、後ろほど時間がずれます。`,
+        ? `fps が違います（A ${a.fps.toFixed(2)} / B ${b.fps.toFixed(2)}）。時刻で合わせるため、B のフレームが重複・欠落します。`
+        : `fps が違います（A ${a.fps.toFixed(2)} / B ${b.fps.toFixed(2)}）。フレーム番号で合わせるため、後ろほど時間がずれます。`,
     );
   }
 

@@ -79,6 +79,28 @@ async function drawPreview(slot: Slot, info: VideoInfo, isStale: () => boolean):
   }
 }
 
+// 空の枠に出ている案内の文言（HTML にある初期の文言を、そのまま使う）
+const emptyName: Record<Slot, string> = {
+  A: ui.fileName.A.textContent ?? '',
+  B: ui.fileName.B.textContent ?? '',
+};
+
+/** 枠 slot を空に戻す。読み込み中のものがあれば、その結果は捨てる。 */
+export function clearFile(slot: Slot): void {
+  loadGen[slot]++;
+  state[slot]?.input.dispose();
+  state[slot] = null;
+  ui.fileName[slot].textContent = emptyName[slot];
+  ui.slotRoot[slot].classList.remove('loaded');
+  setMeta(slot, '');
+  // 幅を変えると、描いてあった絵も消える
+  ui.canvas[slot].width = 16;
+  ui.canvas[slot].height = 9;
+  resetRun();
+  showError('');
+  refreshWarnings();
+}
+
 /** 枠 slot に動画を読み込む。結果は state と画面に反映する。 */
 export async function setFile(slot: Slot, file: File): Promise<void> {
   if (state.running) return;
@@ -91,6 +113,9 @@ export async function setFile(slot: Slot, file: File): Promise<void> {
   showError('');
   ui.fileName[slot].textContent = file.name;
   ui.slotRoot[slot].classList.add('loaded');
+  // 前の動画の絵を残さない（失敗したときに、別の動画が映ったままにならないように）。幅を変えると、絵が消える
+  ui.canvas[slot].width = 16;
+  ui.canvas[slot].height = 9;
   setMeta(slot, '読み込み中…');
   refreshWarnings();
 

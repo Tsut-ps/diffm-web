@@ -1,13 +1,10 @@
-// 状態を画面に反映する（メッセージ、ボタン、グラフ、結果リスト）
+// 状態を画面に反映する（メッセージ、ボタン、グラフ）
 
 import { drawChart } from './chart';
 import { compareInfo, findRanges, type Range } from '../lib/diff';
 import { currentMode, currentThreshold, lockableInputs, ui } from './dom';
 import { state, type Run, type Slot } from '../types';
-import { fmt, num } from '../lib/util';
-
-/** 結果リストに並べる区間の上限（全区間は ZIP に含める）。 */
-const MAX_LISTED = 200;
+import { num } from '../lib/util';
 
 export function showError(message: string): void {
   ui.error.textContent = message;
@@ -19,11 +16,11 @@ export function setMeta(slot: Slot, text: string, bad = false): void {
   ui.meta[slot].classList.toggle('bad', bad);
 }
 
-/** i 番目のフレームの時刻と差分を、A / B / 差分の見出しに出す。 */
+/** i 番目のフレームの時刻と差分を、各枠の見出しに出す。A / B は枠の位置で分かるので、書かない。 */
 export function showCaptions(i: number, tsA: number, tsB: number, diff: number): void {
-  ui.caption.A.textContent = `A · #${i} · ${num(tsA, 3)} s`;
-  ui.caption.B.textContent = `B · #${i} · ${num(tsB, 3)} s`;
-  ui.caption.D.textContent = `差分 · ${num(diff)}`;
+  ui.caption.A.textContent = `${num(tsA, 3)} s`;
+  ui.caption.B.textContent = `${num(tsB, 3)} s`;
+  ui.caption.D.textContent = `#${i} · 差分 ${num(diff)}`;
   ui.diffHint.hidden = true;
 }
 
@@ -53,11 +50,13 @@ export function syncButtons(): void {
   ui.start.disabled = running || !(A && B);
   ui.stop.disabled = !running;
   ui.bar.hidden = !running;
-  ui.openPlayer.disabled = !(A && B);
   for (const el of lockableInputs) el.disabled = running;
   const done = !!run && run.values.length > 0 && !running;
+  const hasRanges = done && currentRanges().length > 0;
   ui.exportCsv.disabled = !done;
-  ui.exportImages.disabled = !done || currentRanges().length === 0;
+  ui.exportImages.disabled = !hasRanges;
+  ui.rangePrev.disabled = !hasRanges;
+  ui.rangeNext.disabled = !hasRanges;
 }
 
 export function refreshWarnings(): void {
@@ -69,7 +68,6 @@ export function refreshWarnings(): void {
       li.textContent = msg;
       ui.warnings.append(li);
     }
-    ui.status.textContent = '開始を押すと比較します。';
   }
   syncButtons();
 }
@@ -78,6 +76,7 @@ export function drawGraph(): void {
   const run = state.run;
   const layout = drawChart(ui.chart, {
     values: run?.values ?? [],
+    ranges: currentRanges(),
     expectedTotal: run?.expected ?? 0,
     threshold: currentThreshold(),
     selected: run?.selected ?? -1,
@@ -86,30 +85,11 @@ export function drawGraph(): void {
   if (run) run.layout = layout;
 }
 
-/** グラフとしきい値超えの区間リストを描き直す。区間のボタンには data-peak を付ける。 */
+/** グラフ（区間の帯を含む）と、区間の件数を描き直す。 */
 export function refreshResults(): void {
   drawGraph();
-  const run = state.run;
-  ui.ranges.replaceChildren();
-  if (!run) return;
-  const ranges = currentRanges();
-  for (const r of ranges.slice(0, MAX_LISTED)) {
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.dataset.peak = String(r.peak);
-    const span = r.start === r.end ? `#${r.start}` : `#${r.start}–${r.end}（${r.end - r.start + 1} フレーム）`;
-    btn.textContent = `${span} · ピーク ${num(run.values[r.peak])} @ #${r.peak} · ${num(run.tsA[r.peak], 2)} s`;
-    btn.setAttribute('aria-current', String(run.selected === r.peak));
-    li.append(btn);
-    ui.ranges.append(li);
-  }
-  if (ranges.length > MAX_LISTED) {
-    const li = document.createElement('li');
-    li.className = 'more';
-    li.textContent = `ほか ${fmt(ranges.length - MAX_LISTED)} 区間（ZIP には全区間を含めます）`;
-    ui.ranges.append(li);
-  }
+  const n = currentRanges().length;
+  ui.rangeSummary.textContent = state.run?.values.length ? (n ? `区間 ${n} 件` : '区間なし') : '';
   syncButtons();
 }
 
@@ -118,13 +98,11 @@ export function resetRun(): void {
   const run = state.run;
   state.run = null;
   if (run) run.sinks = null;
-  ui.ranges.replaceChildren();
   ui.bar.value = 0;
-  ui.caption.A.textContent = 'A';
-  ui.caption.B.textContent = 'B';
-  ui.caption.D.textContent = '差分';
+  ui.status.textContent = '';
+  for (const c of Object.values(ui.caption)) c.textContent = '';
+  ui.diffResolution.textContent = '';
   ui.canvas.D.getContext('2d')?.clearRect(0, 0, ui.canvas.D.width, ui.canvas.D.height);
   ui.diffHint.hidden = false;
-  drawGraph();
-  syncButtons();
+  refreshResults();
 }

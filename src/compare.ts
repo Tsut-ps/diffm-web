@@ -9,8 +9,14 @@ import { state, type Run } from './types';
 import { errorMessage, fmt, num, yieldToUI } from './lib/util';
 import { refreshResults, resetRun, showCaptions, showError, summary, syncButtons } from './ui/view';
 
-/** 進捗表示を更新する間隔（ms） */
+/** 進捗表示を更新して、画面に描画の機会を渡す間隔（ms）。描画間隔が自動のときは、描き直しの下限にもなる */
 const UI_INTERVAL = 120;
+/**
+ * 描画間隔が自動のとき、差分の画像とグラフの描き直しにかかった時間の、何倍の間を空けるか。
+ * 大きな動画ほど描画が重いので、間を広げて、描画が比較の足を引っ張るのを 2 割ほどに抑える。
+ * （フレーム数ではなく時間で決める。速さは、動画や比較の解像度で 1.5fps 〜 400fps と大きく変わるため）
+ */
+const REDRAW_COST_RATIO = 4;
 
 /** 再デコード時に、このフレームを確実に指すタイムスタンプ（フレーム中央付近）。 */
 const queryTime = (s: VideoSample) => s.timestamp + (s.duration > 0 ? s.duration / 2 : 1e-6);
@@ -21,11 +27,12 @@ export async function start(): Promise<void> {
   resetRun();
   showError('');
 
-  const { mode, w, h, interval, gain } = readRunSettings(A, B);
+  const { mode, w, h, gain, redrawMs } = readRunSettings(A, B);
   for (const c of Object.values(ui.canvas)) {
     c.width = w;
     c.height = h;
   }
+  ui.diffResolution.textContent = `${w}×${h}`;
   const ctx = viewContexts();
   const outImage = ctx.D.createImageData(w, h);
 
@@ -50,6 +57,24 @@ export async function start(): Promise<void> {
 
   const t0 = performance.now();
   let lastUi = t0;
+  let nextDraw = t0; // これより前には、差分の画像とグラフを描き直さない
+  // 描画の機会を渡す間隔。描き直しの間隔より長いと、決めた頻度に届かない
+  const yieldEvery = redrawMs === null ? UI_INTERVAL : Math.min(UI_INTERVAL, redrawMs);
+
+  /**
+   * 差分の画像を描いて、見出しとグラフを更新する。次に描いてよい時刻を決める。
+   * 間隔を選んでいればその間隔、自動なら、描くのにかかった時間に合わせる。
+   */
+  const redraw = (da: Uint8ClampedArray, db: Uint8ClampedArray, a: VideoSample, b: VideoSample): void => {
+    const begin = performance.now();
+    renderDiff(da, db, outImage.data, gain);
+    ctx.D.putImageData(outImage, 0, 0);
+    const last = run.values.length - 1;
+    showCaptions(last, a.timestamp, b.timestamp, run.values[last]!);
+    refreshResults();
+    const cost = performance.now() - begin;
+    nextDraw = begin + (redrawMs ?? Math.max(UI_INTERVAL, REDRAW_COST_RATIO * cost));
+  };
 
   try {
     for await (const { index, a, b } of pairs) {
@@ -62,16 +87,12 @@ export async function start(): Promise<void> {
       run.qA.push(queryTime(a));
       run.qB.push(queryTime(b));
 
-      if (index % interval === 0) {
-        renderDiff(da, db, outImage.data, gain);
-        ctx.D.putImageData(outImage, 0, 0);
-        const last = run.values.length - 1;
-        showCaptions(last, a.timestamp, b.timestamp, run.values[last]!);
-        refreshResults();
-      }
+      // 最初のフレームは、すぐ見せる
+      if (index === 0) redraw(da, db, a, b);
 
       const now = performance.now();
-      if (now - lastUi > UI_INTERVAL) {
+      if (now >= nextDraw) redraw(da, db, a, b);
+      if (now - lastUi > yieldEvery) {
         const n = run.values.length;
         const fps = n / ((now - t0) / 1000);
         ui.bar.value = expected > 0 ? Math.min(1, n / expected) : 0;

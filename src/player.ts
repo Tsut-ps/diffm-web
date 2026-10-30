@@ -8,6 +8,8 @@ import { clamp, formatTime, isVideoFile } from './lib/util';
 
 /** コマ送りの幅（秒） */
 const FRAME = 1 / 30;
+/** Shift を押しながらの ← → で動く幅（秒） */
+const SKIP = 5;
 /** 再生中に、これ以上ズレた動画は、位置を合わせ直す（秒）。カクつくので、大きなズレだけにする */
 const TOL = 0.2;
 /** これ以下のズレは、補正しない（秒）。1コマ ≒ 0.033 */
@@ -19,8 +21,11 @@ const NUDGE_SPAN = 0.5;
 /** 再生を始めてから、全動画が動き出すのを待つ上限（ms）。超えたら待たずに時計を進める */
 const START_TIMEOUT = 1500;
 const LAYOUT_KEY = 'diffm-player-layout';
-/** 動画の枠の見出しのおおよその高さ（px）。自動の並べ方の見積もりに使う */
+/** 動画の枠の見出し（上に置くとき）のおおよその高さ（px）。自動の並べ方の見積もりに使う */
 const CAPTION_HEIGHT = 42;
+/** 横長の枠では、見出しを左の縦タブにする。その判定（幅 / 高さ）と、縦タブの幅（px）。player.css と合わせる */
+const STRIP_ASPECT = 3 / 2;
+const STRIP_WIDTH = 41;
 const STAGE_GAP = 12;
 
 type Layout = 'h' | 'v';
@@ -46,7 +51,6 @@ const el = {
   wrap: byId('pl-wrap'),
   stage: byId('pl-stage'),
   cta: byId('pl-cta'),
-  count: byId('pl-count'),
   file: byId<HTMLInputElement>('pl-file'),
   layAuto: byId<HTMLButtonElement>('pl-layAuto'),
   layH: byId<HTMLButtonElement>('pl-layH'),
@@ -108,8 +112,11 @@ function autoLayout(): Layout {
   const ratios = clips.length ? clips.map((c) => c.ratio) : [16 / 9];
   const score = (layout: Layout): number => {
     const cellW = layout === 'h' ? (width - STAGE_GAP * (n - 1)) / n : width;
-    const cellH = (layout === 'h' ? height : (height - STAGE_GAP * (n - 1)) / n) - CAPTION_HEIGHT;
-    return ratios.reduce((sum, r) => sum + fittedArea(cellW, cellH, r), 0);
+    const cellH = layout === 'h' ? height : (height - STAGE_GAP * (n - 1)) / n;
+    // 横長の枠は見出しが左の縦タブ（幅を使う）、そうでなければ上（高さを使う）
+    const [videoW, videoH] =
+      cellW / cellH >= STRIP_ASPECT ? [cellW - STRIP_WIDTH, cellH] : [cellW, cellH - CAPTION_HEIGHT];
+    return ratios.reduce((sum, r) => sum + fittedArea(videoW, videoH, r), 0);
   };
   return score('v') > score('h') ? 'v' : 'h';
 }
@@ -147,7 +154,6 @@ function refreshStage(): void {
   el.stage.style.setProperty('--n', String(n || 1));
   el.cta.hidden = !empty;
   applyLayout();
-  el.count.textContent = `${n}本`;
   for (const b of [el.play, el.scrub, el.rate, el.loop, el.muteAll, el.back, el.fwd]) b.disabled = empty;
 }
 
@@ -408,17 +414,20 @@ function applyPendingStart(): void {
 
 /**
  * 動画を追加する。同じファイルが既にあれば足さない。動画でないものは無視して知らせる。
- * startAt（秒）を渡すと、全動画の読み込み後にその位置へ移る。
+ * startAt（秒）を渡すと、新しく足したときだけ、全動画の読み込み後にその位置へ移る。
+ * 足した本数を返す。
  */
-export function addVideos(list: Iterable<File>, startAt?: number): void {
+export function addVideos(list: Iterable<File>, startAt?: number): number {
   const all = [...list];
   const files = all.filter(isVideoFile);
   if (!files.length) {
     toast('動画ファイルが見つかりませんでした。');
-    return;
+    return 0;
   }
+  const fresh = files.filter((f) => !clips.some((c) => c.file === f));
+  if (fresh.length === 0) return 0;
   if (tl.playing) pause();
-  for (const f of files) if (!clips.some((c) => c.file === f)) addClip(f);
+  for (const f of fresh) addClip(f);
   refreshStage();
   syncMuteUI();
   if (startAt !== undefined) {
@@ -426,6 +435,20 @@ export function addVideos(list: Iterable<File>, startAt?: number): void {
     applyPendingStart();
   }
   if (files.length < all.length) toast(`${all.length - files.length}件は動画ではないため無視しました。`);
+  return fresh.length;
+}
+
+/** 動画をすべて外して、動画のない最初の状態に戻す（再生速度やループなどの設定は残す）。 */
+export function resetPlayer(): void {
+  for (const c of [...clips]) removeClip(c);
+  pendingStart = null;
+}
+
+// 利用者が動画を入れたときに呼ぶ（比較で読み込んだ動画を自動で入れたときは呼ばない）
+let onUserAdd: () => void = () => {};
+
+function addByUser(files: Iterable<File>): void {
+  if (addVideos(files) > 0) onUserAdd();
 }
 
 // ---------- 操作 ----------
@@ -441,7 +464,7 @@ function bindDrop(): void {
   bindWindowDrop({
     enabled: () => active,
     onActive: (on) => (el.veil.hidden = !on),
-    onDrop: (files) => addVideos(files),
+    onDrop: addByUser,
   });
 }
 
@@ -450,42 +473,33 @@ function bindKeys(): void {
     if (!active || e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target instanceof Element ? e.target : null;
     const tag = target?.tagName;
-    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    // 入力欄と選択欄では、その部品の操作を優先する。再生位置のバーは、ここで扱う（1ミリ秒刻みでは動かさない）
+    if ((tag === 'INPUT' && target !== el.scrub) || tag === 'SELECT' || tag === 'TEXTAREA') return;
     if (target?.closest('[role="tablist"]')) return;
+    // 一般的な最低限のキー: Space 再生 / ← → 1コマ（Shift で5秒）/ Home End 先頭・末尾 / M ミュート
     switch (e.key) {
       case ' ':
-        if (tag === 'BUTTON') return;
+        if (tag === 'BUTTON') return; // ボタンの Space は、そのボタンの押下
         e.preventDefault();
         toggle();
         break;
       case 'ArrowLeft':
         e.preventDefault();
-        seek(tl.t - (e.shiftKey ? 1 : 5));
+        if (e.shiftKey) seek(tl.t - SKIP);
+        else step(-1);
         break;
       case 'ArrowRight':
         e.preventDefault();
-        seek(tl.t + (e.shiftKey ? 1 : 5));
-        break;
-      case ',':
-        step(-1);
-        break;
-      case '.':
-        step(1);
+        if (e.shiftKey) seek(tl.t + SKIP);
+        else step(1);
         break;
       case 'Home':
+        e.preventDefault();
         seek(0);
         break;
-      case 'a':
-      case 'A':
-        setLayout('auto');
-        break;
-      case 'h':
-      case 'H':
-        setLayout('h');
-        break;
-      case 'v':
-      case 'V':
-        setLayout('v');
+      case 'End':
+        e.preventDefault();
+        seek(tl.total);
         break;
       case 'm':
       case 'M':
@@ -495,11 +509,13 @@ function bindKeys(): void {
   });
 }
 
-export function initPlayer(): void {
+/** onVideosAdded: 利用者が動画を入れたときに呼ぶ（隣のタブのリセットに使う）。 */
+export function initPlayer(onVideosAdded: () => void): void {
+  onUserAdd = onVideosAdded;
   byId('pl-add').addEventListener('click', () => el.file.click());
   byId('pl-pick').addEventListener('click', () => el.file.click());
   el.file.addEventListener('change', () => {
-    addVideos(el.file.files ?? []);
+    addByUser(el.file.files ?? []);
     el.file.value = '';
   });
   el.layAuto.addEventListener('click', () => setLayout('auto'));

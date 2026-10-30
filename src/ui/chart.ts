@@ -11,8 +11,17 @@ export interface ChartLayout {
   total: number;
 }
 
+/** しきい値を超えた区間（フレーム番号の範囲と、その中のピーク） */
+export interface ChartRange {
+  start: number;
+  end: number;
+  peak: number;
+}
+
 export interface ChartOptions {
   values: readonly number[];
+  /** 帯で塗り、ピークに印を付ける区間 */
+  ranges?: readonly ChartRange[];
   /** 完了前でも横軸を確定させるための、総フレーム数の見込み */
   expectedTotal?: number;
   threshold?: number | null;
@@ -35,7 +44,7 @@ function niceMax(v: number): number {
 /** 描画して、クリック位置の逆引きに使うレイアウトを返す。 */
 export function drawChart(
   canvas: HTMLCanvasElement,
-  { values, expectedTotal = 0, threshold = null, selected = -1, hover = -1 }: ChartOptions,
+  { values, ranges = [], expectedTotal = 0, threshold = null, selected = -1, hover = -1 }: ChartOptions,
 ): ChartLayout {
   const dpr = window.devicePixelRatio || 1;
   const cw = canvas.clientWidth;
@@ -94,6 +103,19 @@ export function drawChart(
     ctx.fillText(`#${i}`, x(i), M.t + plotH + 6);
   }
 
+  // しきい値を超えた区間は、折れ線の下に帯で敷く（細すぎる区間も見えるよう、最小幅を持たせる）
+  if (ranges.length > 0 && total > 1) {
+    const step = plotW / (total - 1);
+    ctx.fillStyle = col('--danger');
+    ctx.globalAlpha = 0.16;
+    for (const r of ranges) {
+      const x0 = Math.max(M.l, x(r.start) - step / 2);
+      const x1 = Math.min(M.l + plotW, x(r.end) + step / 2);
+      ctx.fillRect(x0, M.t, Math.max(2, x1 - x0), plotH);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // 折れ線
   const points: Point[] = [];
   if (n > 0) {
@@ -140,6 +162,17 @@ export function drawChart(
         ctx.arc(px, py, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+  }
+
+  // 各区間のピーク（区間が多すぎると潰れるので、見える数のときだけ）
+  if (threshold != null && ranges.length > 0 && ranges.length <= plotW / 6) {
+    ctx.strokeStyle = col('--danger');
+    ctx.lineWidth = 1.5;
+    for (const r of ranges) {
+      ctx.beginPath();
+      ctx.arc(x(r.peak), y(values[r.peak]!), 4.5, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 

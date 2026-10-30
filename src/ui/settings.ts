@@ -7,7 +7,7 @@ const KEY = 'diffm-settings';
 const fields = {
   mode: ui.mode,
   scale: ui.scale,
-  interval: ui.interval,
+  redraw: ui.redraw,
   gain: ui.gain,
   threshold: ui.threshold,
 };
