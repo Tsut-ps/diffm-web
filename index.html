@@ -157,6 +157,37 @@
         <canvas id="chart"></canvas>
         <div class="tip" id="tip" hidden></div>
       </section>
+
+      <!-- 音声の差。折れ線は A / B / 差（A − B）の音量、下は周波数ごとの音量の差（B − A）。同じ時間軸 -->
+      <section class="graph audio" id="audioPanel" aria-label="音声の差">
+        <div class="graph-head">
+          <b class="graph-title">音声の差</b>
+          <span class="graph-summary" id="aSummary" aria-live="polite"></span>
+          <div class="seg" role="group" aria-label="聴く音" id="aSrc">
+            <button type="button" data-src="A" aria-pressed="true" title="A の音">A</button>
+            <button type="button" data-src="B" aria-pressed="false" title="B の音">B</button>
+            <button type="button" data-src="D" aria-pressed="false" title="A − B（差の音。小さいので、聞こえるまで増幅する）">差</button>
+          </div>
+          <button class="btn" id="aPlay" type="button" aria-pressed="false" disabled title="選んだ位置から 10 秒を聴く (Space)">
+            <svg class="ico pl" aria-hidden="true"><use href="#i-play"/></svg>
+            <svg class="ico pa" aria-hidden="true"><use href="#i-pause"/></svg>
+            <span id="aPlayLabel">聴く</span>
+          </button>
+          <button class="btn" id="aCsv" type="button" disabled title="列ごとの音量（A / B / 差）を保存">CSV で保存</button>
+        </div>
+        <canvas id="aChart" aria-label="音量（A / B / 差）"></canvas>
+        <canvas id="aSpec" aria-label="周波数ごとの音量の差（B − A）"></canvas>
+        <p class="legend">
+          <span class="sw" data-k="d"></span>差（A − B の波形）
+          <span class="sw" data-k="a"></span>A
+          <span class="sw" data-k="b"></span>B（点線）
+          <span class="sep">｜</span>
+          下の図の色:
+          <span class="sw" data-k="la"></span>A のほうが大きい
+          <span class="sw" data-k="lb"></span>B のほうが大きい（濃いほど差が大きい）
+        </p>
+        <div class="tip" id="aTip" hidden></div>
+      </section>
     </div>
 
     <div class="player" id="panel-player" role="tabpanel" aria-labelledby="tab-player" hidden>

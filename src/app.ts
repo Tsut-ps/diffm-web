@@ -4,12 +4,14 @@ import './style.css';
 import { start, stop } from './compare';
 import { frameAt, pickIndex } from './ui/chart';
 import { ui } from './ui/dom';
-import { exportCsv, exportImages } from './exporter';
+import { stopPlayback } from './audioplay';
+import { exportAudioCsv, exportCsv, exportImages } from './exporter';
 import { inspect } from './frames';
 import { clearFile, setFile } from './loader';
 import { addVideos, initPlayer, resetPlayer, setPlayerActive } from './player';
 import { SLOTS, state, type Slot } from './types';
 import { isVideoFile, num } from './lib/util';
+import { bindAudio, markFrameSynced, togglePlayback } from './ui/audioview';
 import { bindWindowDrop } from './ui/dropzone';
 import { initDragNumber } from './ui/dragnumber';
 import { bindSaveSettings, restoreSettings } from './ui/settings';
@@ -116,6 +118,23 @@ async function followFrame(i: number): Promise<void> {
   }
 }
 
+/** 音声のグラフで選んだ時刻に、いちばん近い動画のフレームを選ぶ（比較が終わっていれば）。 */
+function seekFromAudio(time: number): void {
+  const { A, run } = state;
+  if (!A || !run || state.running || run.values.length === 0) return;
+  const target = time + A.first;
+  // tsA は昇順。target 以下で最後のフレームを、二分探索で探す
+  let lo = 0;
+  let hi = run.tsA.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (run.tsA[mid]! <= target) lo = mid;
+    else hi = mid - 1;
+  }
+  markFrameSynced(lo);
+  void followFrame(lo);
+}
+
 /** グラフの操作: ホバーで値、押すとそのフレームを表示、押したまま動かすとフレームが追従する */
 function bindChart(): void {
   const cssX = (e: MouseEvent) => e.clientX - ui.chart.getBoundingClientRect().left;
@@ -190,6 +209,11 @@ function bindKeys(): void {
       e.preventDefault();
       return;
     }
+    // Space: 音声を聴く / 止める（ボタンにフォーカスがあるときは、ボタン自身の操作に任せる。聴けないときは、ページのスクロールのまま）
+    if (e.key === ' ' && tag !== 'BUTTON' && tag !== 'A') {
+      if (togglePlayback()) e.preventDefault();
+      return;
+    }
     const run = state.run;
     if (!run || state.running || run.values.length === 0) return;
 
@@ -225,6 +249,7 @@ bindWindowDrop({
   onDrop: dropToSlots,
 });
 bindChart();
+bindAudio(seekFromAudio);
 ui.rangePrev.addEventListener('click', () => jumpRange(-1));
 ui.rangeNext.addEventListener('click', () => jumpRange(1));
 bindKeys();
@@ -232,6 +257,7 @@ initDragNumber();
 initPlayer(() => void resetCompare());
 initTabs((tab) => {
   setPlayerActive(tab === 'player');
+  if (tab === 'player') stopPlayback(); // 並べて再生の音と重ねない
   if (tab === 'player') loadComparedVideos();
   // 隠れている間は幅が 0 で描けないので、戻ったときに描き直す
   if (tab === 'diff') drawGraph();
@@ -243,5 +269,6 @@ ui.start.addEventListener('click', () => void start());
 ui.stop.addEventListener('click', stop);
 ui.exportImages.addEventListener('click', () => void exportImages());
 ui.exportCsv.addEventListener('click', exportCsv);
+ui.aCsv.addEventListener('click', exportAudioCsv);
 
 drawGraph();

@@ -36,3 +36,9 @@ export function must<T>(ctx: T | null): T {
   if (!ctx) throw new Error('2D コンテキストを取得できませんでした。');
   return ctx;
 }
+
+/** サンプルレートを kHz で表示（48000 → "48 kHz"、44100 → "44.1 kHz"）。 */
+export const khz = (rate: number): string => `${+(rate / 1000).toFixed(1)} kHz`;
+
+/** チャンネル数の呼び名。 */
+export const channelLabel = (n: number): string => (n === 1 ? 'モノラル' : n === 2 ? 'ステレオ' : `${n}ch`);

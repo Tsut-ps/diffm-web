@@ -2,6 +2,7 @@
 
 import { ui } from './ui/dom';
 import { fetchPair, paint } from './frames';
+import { HOP_RATE } from './lib/audiodsp';
 import { state } from './types';
 import { errorMessage, must, num } from './lib/util';
 import { currentRanges, showError, syncButtons } from './ui/view';
@@ -68,4 +69,15 @@ export function exportCsv(): void {
     rows.push(`${i},${run.tsA[i]},${run.tsB[i]},${run.values[i]}`);
   }
   download(new Blob([rows.join('\n') + '\n'], { type: 'text/csv' }), 'diffm.csv');
+}
+
+/** 音声の列ごとの音量（A / B / A − B の波形）を CSV で保存する。-96 は、それ以下（無音を含む）。 */
+export function exportAudioCsv(): void {
+  const au = state.audio;
+  if (!au) return;
+  const rows = ['time,level_a_db,level_b_db,diff_db'];
+  for (let i = 0; i < au.count; i++) {
+    rows.push(`${i / HOP_RATE},${au.levelA[i]!.toFixed(2)},${au.levelB[i]!.toFixed(2)},${au.diff[i]!.toFixed(2)}`);
+  }
+  download(new Blob([rows.join('\n') + '\n'], { type: 'text/csv' }), 'diffm-audio.csv');
 }

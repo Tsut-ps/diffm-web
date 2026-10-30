@@ -15,6 +15,8 @@
   --accent: #f0b24a;
   --accent-ink: #1b1303;
   --line: var(--accent);
+  --a-line: #5ab0ff;
+  --b-line: #ff6b66;
   --danger: #ff6b66;
   --warn-bg: #3a2f10;
   --warn-text: #f3d98a;
@@ -41,6 +43,8 @@
     --grid: #e3e6ea;
     --accent: #b86b00;
     --accent-ink: #ffffff;
+    --a-line: #1d6fc4;
+    --b-line: #d1332e;
     --danger: #d1332e;
     --warn-bg: #fff4d6;
     --warn-text: #5c4300;
@@ -201,6 +205,7 @@ label.pane { cursor: pointer; }
 /* 枠の下の行: 左に時刻など、右に動画の情報（解像度・fps・長さ・コーデック。差分の枠は、比較に使う大きさ） */
 .view figcaption { display: flex; justify-content: space-between; gap: 8px; min-height: 1.6em; color: var(--muted); font: 12.5px var(--font-mono); }
 .view figcaption > :last-child { min-width: 0; text-align: right; }
+.meta { white-space: pre-line; } /* 映像と音声の情報は、改行で 2 行に分ける */
 .meta.bad { color: var(--danger); }
 
 .warnings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -234,3 +239,20 @@ label.pane { cursor: pointer; }
   position: absolute; pointer-events: none; padding: 3px 8px; border-radius: var(--r-ctl);
   background: var(--text); color: var(--bg); font: 12px var(--font-mono); white-space: nowrap;
 }
+
+/* 音声の差。折れ線とスペクトログラムは、横（時間）の位置をそろえる */
+.graph-title { font-weight: 600; }
+#aChart { width: 100%; height: 150px; display: block; cursor: crosshair; touch-action: pan-y; }
+#aSpec { width: 100%; height: 170px; display: block; cursor: crosshair; touch-action: pan-y; }
+#aPlay[aria-pressed="true"] .pl, #aPlay[aria-pressed="false"] .pa { display: none; }
+#aPlay[aria-pressed="true"] { border-color: var(--accent); }
+.legend { margin: 6px 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; color: var(--muted); }
+.legend .sep { margin-inline: 4px; }
+.legend .sw { width: 14px; height: 3px; margin-left: 8px; border-radius: 2px; background: var(--muted); }
+.legend .sw:first-child { margin-left: 0; }
+.legend .sw[data-k="a"] { background: repeating-linear-gradient(90deg, var(--a-line) 0 2px, transparent 2px 5px); }
+.legend .sw[data-k="b"] { background: repeating-linear-gradient(90deg, var(--b-line) 0 2px, transparent 2px 5px); }
+.legend .sw[data-k="a"], .legend .sw[data-k="b"] { height: 2px; }
+.legend .sw[data-k="d"] { background: var(--line); height: 4px; }
+.legend .sw[data-k="la"] { background: rgb(80 170 255); height: 10px; }
+.legend .sw[data-k="lb"] { background: rgb(255 96 90); height: 10px; }

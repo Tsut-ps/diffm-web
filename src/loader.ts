@@ -3,7 +3,7 @@
 import { ALL_FORMATS, BlobSource, Input, VideoSampleSink } from 'mediabunny';
 import { ui } from './ui/dom';
 import { state, type Slot, type VideoInfo } from './types';
-import { errorMessage, must, num } from './lib/util';
+import { channelLabel, errorMessage, khz, must, num } from './lib/util';
 import { refreshWarnings, resetRun, setMeta, showError } from './ui/view';
 
 // 1辺の上限（px）。これを超える動画はメモリ不足でタブが落ちうるため、読み込み時に拒否する。
@@ -11,6 +11,26 @@ const MAX_SIDE = 4096;
 
 // 枠ごとの読み込み世代。新しいファイルが選ばれたら、古い読み込みの結果は捨てる。
 const loadGen: Record<Slot, number> = { A: 0, B: 0 };
+
+/** 音声のメタデータを読む。音声が無い・読めなくても、動画の読み込みは失敗にしない（理由を audioNote に入れる）。 */
+async function readAudioInfo(input: Input, first: number): Promise<Pick<VideoInfo, 'audio' | 'audioNote'>> {
+  try {
+    const track = await input.getPrimaryAudioTrack();
+    if (!track) return { audio: null, audioNote: '音声なし' };
+    const [codec, canDecode, rate, channels, end] = await Promise.all([
+      track.getCodec(),
+      track.canDecode(),
+      track.getSampleRate(),
+      track.getNumberOfChannels(),
+      track.computeDuration(),
+    ]);
+    if (!canDecode) return { audio: null, audioNote: `音声は非対応（${codec ?? '不明'}）` };
+    return { audio: { track, codec, rate, channels, duration: Math.max(0, end - first) }, audioNote: '' };
+  } catch (e) {
+    console.warn('音声を読み取れませんでした', e);
+    return { audio: null, audioNote: '音声は読み取れません' };
+  }
+}
 
 /**
  * 動画のメタデータを読む。isStale が真になったら中断して null を返す。
@@ -49,8 +69,11 @@ async function readVideoInfo(file: File, isStale: () => boolean): Promise<VideoI
     const fps = stats.averagePacketRate;
     if (!(fps > 0 && duration > 0)) throw new Error('フレームレートや長さを読み取れません。');
 
+    const { audio, audioNote } = await readAudioInfo(input, first);
+    if (isStale()) return null;
+
     keep = true;
-    return { file, input, track, codec, w, h, fps, duration, first };
+    return { file, input, track, codec, w, h, fps, duration, first, audio, audioNote };
   } finally {
     if (!keep && !input.disposed) input.dispose();
   }
@@ -125,7 +148,12 @@ export async function setFile(slot: Slot, file: File): Promise<void> {
     state[slot] = info;
     await drawPreview(slot, info, isStale);
     if (isStale()) return;
-    setMeta(slot, `${info.w}×${info.h} · ${num(info.fps)} fps · ${num(info.duration)} 秒 · ${info.codec ?? '不明'}`);
+    const sound = info.audio
+      ? `${info.audio.codec ?? '不明'} ${khz(info.audio.rate)} ${channelLabel(info.audio.channels)}`
+      : info.audioNote;
+    // 映像と音声を 2 行に分ける（1 行にすると、枠の幅に収まらない）
+    setMeta(slot, `${info.w}×${info.h} · ${num(info.fps)} fps · ${num(info.duration)} 秒 · ${info.codec ?? '不明'}
+${sound}`);
   } catch (e) {
     if (isStale()) return;
     console.error(e);

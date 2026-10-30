@@ -1,6 +1,7 @@
 // 差分の計算と、比較条件のチェック（DOM に依存しない純粋関数）
 
 import type { Mode, ModeSetting, VideoInfo } from '../types';
+import { channelLabel, khz } from './util';
 
 type Pixels = ArrayLike<number>;
 type Timing = Pick<VideoInfo, 'w' | 'h' | 'fps' | 'duration'>;
@@ -86,5 +87,27 @@ export function compareInfo(a: Timing, b: Timing, mode: Mode): string[] {
     );
   }
 
+  return warnings;
+}
+
+/** 音声の比較条件の警告（日本語）。音声が両方にあるときだけ、サンプルレートとチャンネル数を見る。 */
+export function audioInfo(a: Pick<VideoInfo, 'audio'>, b: Pick<VideoInfo, 'audio'>): string[] {
+  const x = a.audio;
+  const y = b.audio;
+  const warnings: string[] = [];
+  if (!!x !== !!y) {
+    warnings.push(`${x ? 'A' : 'B'} にだけ音声があるので、音声の差は出しません。`);
+  } else if (x && y) {
+    if (x.rate !== y.rate) {
+      warnings.push(
+        `音声のサンプルレートが違います（A ${khz(x.rate)} / B ${khz(y.rate)}）。B を A に合わせて変換して比べるため、変換による差が出ます。`,
+      );
+    }
+    if (x.channels !== y.channels) {
+      warnings.push(
+        `音声のチャンネル数が違います（A ${channelLabel(x.channels)} / B ${channelLabel(y.channels)}）。どちらもモノラルに混ぜて比べます。`,
+      );
+    }
+  }
   return warnings;
 }

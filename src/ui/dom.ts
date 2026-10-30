@@ -54,6 +54,16 @@ export const ui = {
   rangeNext: byId<HTMLButtonElement>('rangeNext'),
   exportImages: byId<HTMLButtonElement>('exportImages'),
   exportCsv: byId<HTMLButtonElement>('exportCsv'),
+
+  // 音声の差
+  aSummary: byId('aSummary'),
+  aChart: byId<HTMLCanvasElement>('aChart'),
+  aSpec: byId<HTMLCanvasElement>('aSpec'),
+  aTip: byId('aTip'),
+  aPlay: byId<HTMLButtonElement>('aPlay'),
+  aPlayLabel: byId('aPlayLabel'),
+  aSrc: byId('aSrc'),
+  aCsv: byId<HTMLButtonElement>('aCsv'),
 };
 
 /** 設定欄（実行中は触れないようにする対象）。 */

@@ -1,4 +1,4 @@
-import type { Input, InputVideoTrack, VideoCodec, VideoSampleSink } from 'mediabunny';
+import type { AudioCodec, Input, InputAudioTrack, InputVideoTrack, VideoCodec, VideoSampleSink } from 'mediabunny';
 import type { ChartLayout } from './ui/chart';
 
 /** 動画の枠。A が基準、B が比較対象。 */
@@ -9,6 +9,17 @@ export const SLOTS: readonly Slot[] = ['A', 'B'];
 export type Mode = 'index' | 'time';
 /** 画面で選べる対応づけ方法（auto は読み込んだ動画から決める）。 */
 export type ModeSetting = Mode | 'auto';
+
+/** 動画に含まれる音声（読めるときだけ持つ）。時刻は、動画の先頭フレームを 0 とする。 */
+export interface AudioInfo {
+  track: InputAudioTrack;
+  codec: AudioCodec | null;
+  /** サンプルレート（Hz） */
+  rate: number;
+  channels: number;
+  /** 動画の先頭から、音声の終わりまで（秒） */
+  duration: number;
+}
 
 /** 読み込んだ動画の情報。 */
 export interface VideoInfo {
@@ -22,6 +33,10 @@ export interface VideoInfo {
   duration: number;
   /** 先頭フレームのタイムスタンプ（秒） */
   first: number;
+  /** 音声。無い・読めないときは null */
+  audio: AudioInfo | null;
+  /** audio が null の理由（画面に出す）。読めるときは空 */
+  audioNote: string;
 }
 
 /** 比較の実行結果。フレームごとに1要素ずつ持つ（画像は持たない）。 */
@@ -48,6 +63,32 @@ export interface Run {
   layout: ChartLayout | null;
 }
 
+/** 音声の差の分析結果。1/HOP_RATE 秒ごとに 1 列（画像は持たない） */
+export interface AudioRun {
+  /** 総列数（短いほうの音声の長さから決める。進捗と横軸に使う） */
+  expected: number;
+  /** 分析済みの列数 */
+  count: number;
+  /** 列ごとの音量（dBFS）。levelA / levelB は各音声、diff は A − B の波形 */
+  levelA: number[];
+  levelB: number[];
+  diff: number[];
+  /** スペクトログラムの差（B − A、dB）。列 k の行 r は spec[k * rows + r]。行は低い周波数から */
+  spec: Int8Array;
+  rows: number;
+  fMin: number;
+  fMax: number;
+  /** 全体のエネルギー（サンプルの二乗和）。全体の差の大きさを出す */
+  energyA: number;
+  energyDiff: number;
+  /** 分析が終わった（停止・エラーを含む） */
+  done: boolean;
+  error: string;
+  /** 選んだ時刻（秒。動画の先頭から）。無ければ -1 */
+  selected: number;
+  hover: number;
+}
+
 export interface AppState {
   A: VideoInfo | null;
   B: VideoInfo | null;
@@ -55,6 +96,7 @@ export interface AppState {
   /** 停止ボタンが押された */
   stop: boolean;
   run: Run | null;
+  audio: AudioRun | null;
 }
 
 /** アプリ全体の状態（画面はこれを読んで描き直す）。 */
@@ -64,4 +106,5 @@ export const state: AppState = {
   running: false,
   stop: false,
   run: null,
+  audio: null,
 };

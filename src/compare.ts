@@ -1,12 +1,14 @@
 // 比較の実行: 2本を先頭から順にデコードし、フレームごとの差分を記録する
 
 import { VideoSampleSink, type VideoSample } from 'mediabunny';
+import { analyzeAudio, canCompareAudio } from './audio';
 import { meanLumaDiff, renderDiff } from './lib/diff';
 import { readRunSettings, ui } from './ui/dom';
 import { grab, viewContexts } from './frames';
 import { pairByIndex, pairByTime } from './lib/pairing';
 import { state, type Run } from './types';
 import { errorMessage, fmt, num, yieldToUI } from './lib/util';
+import { refreshAudio } from './ui/audioview';
 import { refreshResults, resetRun, showCaptions, showError, summary, syncButtons } from './ui/view';
 
 /** 進捗表示を更新して、画面に描画の機会を渡す間隔（ms）。描画間隔が自動のときは、描き直しの下限にもなる */
@@ -49,6 +51,12 @@ export async function start(): Promise<void> {
   state.running = true;
   state.stop = false;
   syncButtons();
+
+  // 音声の差は、動画の比較と並べて分析する（動画が止まる・失敗したら、音声も止める）
+  let videoFailed = false;
+  const audioTask = canCompareAudio(A, B)
+    ? analyzeAudio(A, B, () => state.stop || videoFailed, refreshAudio)
+    : Promise.resolve();
 
   const pairs =
     mode === 'time'
@@ -106,8 +114,10 @@ export async function start(): Promise<void> {
     if (run.values.length === 0) throw new Error('比較できるフレームがありませんでした。');
   } catch (e) {
     console.error(e);
+    videoFailed = true;
     showError(`エラー: ${errorMessage(e)}`);
   } finally {
+    await audioTask;
     state.running = false;
     ui.bar.value = run.values.length ? 1 : 0;
     const secs = (performance.now() - t0) / 1000;

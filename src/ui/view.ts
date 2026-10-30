@@ -1,7 +1,8 @@
 // 状態を画面に反映する（メッセージ、ボタン、グラフ）
 
 import { drawChart } from './chart';
-import { compareInfo, findRanges, type Range } from '../lib/diff';
+import { audioInfo, compareInfo, findRanges, type Range } from '../lib/diff';
+import { refreshAudio, resetAudio } from './audioview';
 import { currentMode, currentThreshold, lockableInputs, ui } from './dom';
 import { state, type Run, type Slot } from '../types';
 import { num } from '../lib/util';
@@ -63,13 +64,14 @@ export function refreshWarnings(): void {
   ui.warnings.replaceChildren();
   const { A, B } = state;
   if (A && B) {
-    for (const msg of compareInfo(A, B, currentMode(A, B))) {
+    for (const msg of [...compareInfo(A, B, currentMode(A, B)), ...audioInfo(A, B)]) {
       const li = document.createElement('li');
       li.textContent = msg;
       ui.warnings.append(li);
     }
   }
   syncButtons();
+  refreshAudio();
 }
 
 export function drawGraph(): void {
@@ -83,6 +85,7 @@ export function drawGraph(): void {
     hover: run?.hover ?? -1,
   });
   if (run) run.layout = layout;
+  refreshAudio(); // 音声の選択も、動画の選択に合わせる
 }
 
 /** グラフ（区間の帯を含む）と、区間の件数を描き直す。 */
@@ -104,5 +107,6 @@ export function resetRun(): void {
   ui.diffResolution.textContent = '';
   ui.canvas.D.getContext('2d')?.clearRect(0, 0, ui.canvas.D.width, ui.canvas.D.height);
   ui.diffHint.hidden = false;
+  resetAudio();
   refreshResults();
 }
