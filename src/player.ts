@@ -8,8 +8,16 @@ import { clamp, formatTime, isVideoFile } from './lib/util';
 
 /** コマ送りの幅（秒） */
 const FRAME = 1 / 30;
-/** 再生中に、これ以上ズレた動画だけ位置を合わせ直す（秒） */
+/** 再生中に、これ以上ズレた動画は、位置を合わせ直す（秒）。カクつくので、大きなズレだけにする */
 const TOL = 0.2;
+/** これ以下のズレは、補正しない（秒）。1コマ ≒ 0.033 */
+const DEAD_ZONE = 0.03;
+/** DEAD_ZONE〜TOL のズレは、再生速度を少し変えて解消する。速度の変え幅の上限（±15%） */
+const NUDGE_MAX = 0.15;
+/** ズレを、おおよそこの秒数で解消する強さにする */
+const NUDGE_SPAN = 0.5;
+/** 再生を始めてから、全動画が動き出すのを待つ上限（ms）。超えたら待たずに時計を進める */
+const START_TIMEOUT = 1500;
 const LAYOUT_KEY = 'diffm-player-layout';
 /** 動画の枠の見出しのおおよその高さ（px）。自動の並べ方の見積もりに使う */
 const CAPTION_HEIGHT = 42;
@@ -66,6 +74,12 @@ let pendingStart: number | null = null;
 let active = false;
 let raf = 0;
 let last = 0;
+/**
+ * 再生を始めて、全動画が動き出すのを待っている間だけ、始めた時刻を持つ（待っている間、時計は止める）。
+ * シーク直後は、動画ごとに動き出すまでの時間が違う（キーフレームの間隔が長い動画ほど遅い）。
+ * 時計だけ先に進めると、遅れて動き出した動画は、その分だけずっと遅れる。
+ */
+let startedAt: number | null = null;
 let scrubbing = false;
 let resumeAfterScrub = false;
 let shownTime = '';
@@ -156,24 +170,57 @@ function onPlayBlocked(err: unknown): void {
   }
 }
 
+/** 再生速度を、設定の速度に戻す（補正で変えたものを戻す）。 */
+function restoreRates(): void {
+  for (const c of clips) if (c.video.playbackRate !== tl.rate) c.video.playbackRate = tl.rate;
+}
+
+/** drift（動画の位置 − 合わせたい位置。プラスなら進みすぎ）を、再生速度を少し変えて解消する。 */
+function nudgeRate(v: HTMLVideoElement, drift: number): void {
+  const adjust = Math.abs(drift) <= DEAD_ZONE ? 0 : clamp(-drift / NUDGE_SPAN, -NUDGE_MAX, NUDGE_MAX);
+  const rate = tl.rate * (1 + adjust);
+  if (v.playbackRate !== rate) v.playbackRate = rate;
+}
+
+/** 出番（開始ズレを引いた位置が、動画の長さの中）にあるか。 */
+const inRange = (c: Clip): boolean => {
+  const target = tl.t - c.offset;
+  return target >= 0 && target < c.duration;
+};
+
+/** 出番にある動画が、すべて実際に動き出したか。 */
+function allRunning(): boolean {
+  return clips.every((c) => {
+    const v = c.video;
+    return !inRange(c) || (!v.paused && !v.seeking && v.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA);
+  });
+}
+
 /** 全クリップを共通の時刻 tl.t に合わせる。force なら、ズレの大小に関わらず位置を合わせ直す。 */
 function applyTime(force: boolean): void {
   for (const c of clips) {
     const { video: v, duration: d } = c;
     if (!Number.isFinite(d)) continue;
     const target = tl.t - c.offset;
-    const inRange = target >= 0 && target < d;
-    if (tl.playing && inRange) {
+    if (tl.playing && inRange(c)) {
       if (v.paused) {
         if (force || Math.abs(v.currentTime - target) > 0.05) v.currentTime = target;
         v.play().catch(onPlayBlocked);
-      } else if (!v.seeking && Math.abs(v.currentTime - target) > TOL) {
-        v.currentTime = target;
+      } else if (!v.seeking) {
+        const drift = v.currentTime - target;
+        if (Math.abs(drift) > TOL) {
+          v.currentTime = target;
+          v.playbackRate = tl.rate;
+        } else {
+          nudgeRate(v, drift);
+        }
       }
     } else {
       if (!v.paused) v.pause();
+      // シーク中に重ねて指示すると、キーフレームの間隔が長い動画ほど描画が追いつかず、動画ごとにずれて見える。
+      // シークが終わるまで待ち、終わったら最新の位置へ移る（seeked で呼び直す）
       const pos = clamp(target, 0, d);
-      if (force || (!v.seeking && Math.abs(v.currentTime - pos) > 0.03)) v.currentTime = pos;
+      if (!v.seeking && (force || Math.abs(v.currentTime - pos) > DEAD_ZONE)) v.currentTime = pos;
     }
   }
 }
@@ -195,14 +242,16 @@ function play(): void {
   }
   if (tl.t >= tl.total - 0.02) tl.t = 0;
   tl.playing = true;
-  last = performance.now();
+  startedAt = performance.now();
   applyTime(true);
   paintPlayState();
 }
 
 function pause(): void {
   tl.playing = false;
+  startedAt = null;
   for (const c of clips) c.video.pause();
+  restoreRates();
   applyTime(true); // 止めた位置を全員そろえる
   paintPlayState();
 }
@@ -216,7 +265,12 @@ function step(dir: 1 | -1): void {
 }
 
 function tick(now: number): void {
-  if (tl.playing) {
+  // 全動画が動き出すまで、時計は進めない
+  if (tl.playing && startedAt !== null && (allRunning() || now - startedAt > START_TIMEOUT)) {
+    startedAt = null;
+    last = now;
+  }
+  if (tl.playing && startedAt === null) {
     const dt = Math.min((now - last) / 1000, 0.25);
     last = now;
     tl.t += dt * tl.rate;
@@ -299,6 +353,10 @@ function addClip(file: File): void {
     applyLayout();
     applyTime(true);
     applyPendingStart();
+  });
+  // 止まっているときは、シーク中の指示を待たせているので、終わったら最新の位置へ移る
+  video.addEventListener('seeked', () => {
+    if (!tl.playing) applyTime(false);
   });
   video.addEventListener('error', () => {
     toast(`「${file.name}」はこのブラウザで再生できない形式です。`);
