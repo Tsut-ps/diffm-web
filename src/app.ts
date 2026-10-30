@@ -11,6 +11,7 @@ import { addVideos, initPlayer, resetPlayer, setPlayerActive } from './player';
 import { SLOTS, state, type Slot } from './types';
 import { isVideoFile, num } from './lib/util';
 import { bindWindowDrop } from './ui/dropzone';
+import { initDragNumber } from './ui/dragnumber';
 import { bindSaveSettings, restoreSettings } from './ui/settings';
 import { initTabs } from './ui/tabs';
 import { currentRanges, drawGraph, refreshResults, refreshWarnings } from './ui/view';
@@ -188,6 +189,7 @@ bindChart();
 ui.rangePrev.addEventListener('click', () => jumpRange(-1));
 ui.rangeNext.addEventListener('click', () => jumpRange(1));
 bindKeys();
+initDragNumber();
 initPlayer(() => void resetCompare());
 initTabs((tab) => {
   setPlayerActive(tab === 'player');

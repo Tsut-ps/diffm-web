@@ -149,7 +149,7 @@
             </button>
           </div>
           <label class="inline">しきい値
-            <input class="field" id="threshold" type="number" min="0" max="255" step="0.1" value="1" title="0〜255。この値以上が続く範囲を「区間」とする">
+            <input class="field" id="threshold" data-drag="y" type="number" min="0" max="255" step="0.1" value="1" title="0〜255。この値以上が続く範囲を「区間」とする。ドラッグでも変えられる（Shift で細かく）">
           </label>
           <button class="btn" id="exportImages" type="button" disabled title="各区間のピークのフレームを、A | B | 差分 の PNG にして ZIP で保存">画像を ZIP で保存</button>
           <button class="btn" id="exportCsv" type="button" disabled title="全フレームの差分の値を保存">CSV で保存</button>
@@ -213,8 +213,8 @@
          <div class="tile-in">
           <figcaption class="cap">
             <span class="name"></span>
-            <label class="shift" title="この動画を始めるタイミング（秒）。プラスで遅らせ、マイナスで先へ進めます">
-              <span>開始</span><input class="field" type="number" step="0.01" value="0.00" inputmode="decimal"><span>秒</span>
+            <label class="shift" title="この動画を始めるタイミング（秒）。プラスで遅らせ、マイナスで先へ進めます。ドラッグでも変えられる（Shift で細かく）">
+              <span>開始オフセット</span><input class="field" data-drag-curve="linear" type="number" step="0.01" value="0.00" inputmode="decimal"><span>秒</span>
             </label>
             <button type="button" class="icon mute" aria-pressed="false" title="この動画のミュート">
               <svg class="ico on" aria-hidden="true"><use href="#i-volume"/></svg>

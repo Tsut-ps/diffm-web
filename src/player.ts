@@ -1,5 +1,5 @@
 // 並べて再生: 複数の動画を、1本の共通タイムラインで同時に再生する。
-// 共通の時刻 t を持ち、各動画の再生位置を「t − その動画の開始ズレ」に合わせる。
+// 共通の時刻 t を持ち、各動画の再生位置を「t − その動画の開始オフセット」に合わせる。
 
 import './player.css';
 import { byId } from './ui/dom';
@@ -35,7 +35,7 @@ type LayoutSetting = Layout | 'auto';
 interface Clip {
   file: File;
   url: string;
-  /** 開始ズレ（秒）。プラスで遅らせる */
+  /** 開始オフセット（秒）。プラスで遅らせる */
   offset: number;
   /** 長さ（秒）。メタデータを読むまで NaN */
   duration: number;
@@ -188,7 +188,7 @@ function nudgeRate(v: HTMLVideoElement, drift: number): void {
   if (v.playbackRate !== rate) v.playbackRate = rate;
 }
 
-/** 出番（開始ズレを引いた位置が、動画の長さの中）にあるか。 */
+/** 出番（開始オフセットを引いた位置が、動画の長さの中）にあるか。 */
 const inRange = (c: Clip): boolean => {
   const target = tl.t - c.offset;
   return target >= 0 && target < c.duration;
@@ -342,7 +342,7 @@ function addClip(file: File): void {
   };
   nameEl.textContent = file.name;
   nameEl.title = file.name;
-  offsetInput.setAttribute('aria-label', `${file.name} の開始位置（秒）`);
+  offsetInput.setAttribute('aria-label', `${file.name} の開始オフセット（秒）`);
   video.muted = clip.muted;
   video.playbackRate = tl.rate;
   video.src = clip.url;

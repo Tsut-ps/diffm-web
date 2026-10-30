@@ -147,7 +147,14 @@ header progress::-moz-progress-bar { background: var(--accent); }
 .field {
   padding: 0 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit;
 }
-input.field[type="number"] { font-family: var(--font-mono); text-align: right; }
+input.field[type="number"] { font-family: var(--font-mono); text-align: right; touch-action: pan-y; }
+/* 数値の欄は、ドラッグでも変えられる（ui/dragnumber.ts）。入力中は、文字を打つカーソルに戻す */
+input.field[type="number"]:not(:focus), label:has(input[type="number"]) { cursor: ew-resize; }
+/* 上下にドラッグする欄（data-drag="y"）は、上下の矢印にして、縦のスクロールを邪魔しない向きにする */
+input.field[data-drag="y"] { touch-action: pan-x; }
+input.field[data-drag="y"]:not(:focus), label:has(input[data-drag="y"]) { cursor: ns-resize; }
+.dragging-number, .dragging-number * { cursor: ew-resize !important; user-select: none !important; }
+.dragging-number-v, .dragging-number-v * { cursor: ns-resize !important; user-select: none !important; }
 select.field { padding-right: 4px; cursor: pointer; }
 
 /* ラベル付きの設定項目 */
