@@ -2,11 +2,13 @@ import { defineConfig, type Plugin } from 'vite';
 
 // 公開物に付ける CSP。外部への通信は一切許可しない。
 // mediabunny は内部で blob: のワーカーを使うため worker-src blob: のみ許可する。
+// 並べて再生は、選んだ動画のローカルな blob: URL を <video> で再生するため media-src blob: のみ許可する。
 const CSP = [
   "default-src 'none'",
   "script-src 'self'",
   "style-src 'self'",
   'img-src data:',
+  'media-src blob:',
   'worker-src blob:',
   "base-uri 'none'",
   "form-action 'none'",

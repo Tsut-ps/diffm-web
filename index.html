@@ -2,103 +2,238 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- CSP はビルド時に vite.config.ts が挿入する（開発サーバーとは両立しないため） -->
-  <title>diffm-web</title>
+  <title>diffm</title>
   <link rel="icon" href="data:,">
   <script type="module" src="/src/app.ts"></script>
 </head>
-<body>
+<body data-tab="diff">
+  <!-- アイコン（<use> で参照する） -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-layout-auto" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/></symbol>
+    <symbol id="i-layout-h" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/></symbol>
+    <symbol id="i-layout-v" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="8" rx="1.5"/><rect x="4" y="13" width="16" height="8" rx="1.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path class="f" d="M17.5 6.5v11l-8-5.5z"/><path d="M6.5 6.5v11"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path class="f" d="M6.5 6.5v11l8-5.5z"/><path d="M17.5 6.5v11"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path class="f" d="M8 5.5v13l11-6.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path class="f" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></symbol>
+    <symbol id="i-loop" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  </svg>
+
   <header>
-    <h1>diffm-web</h1>
-    <p>2本の動画をフレーム単位で比較し、差分をグラフにします。処理はすべてブラウザ内で行い、動画は送信されません。</p>
+    <div class="inner">
+      <h1>diffm</h1>
+      <nav class="tabs" role="tablist" aria-label="機能">
+        <button type="button" role="tab" id="tab-diff" aria-controls="panel-diff" aria-selected="true">比較</button>
+        <button type="button" role="tab" id="tab-player" aria-controls="panel-player" aria-selected="false" tabindex="-1">並べて再生</button>
+      </nav>
+
+      <!-- 開いているタブの操作（もう一方は隠れる） -->
+      <div class="tools" data-for="diff">
+        <span id="status" aria-live="polite">動画 A と B を選んでください。</span>
+        <button class="btn primary" id="start" type="button" disabled>開始</button>
+        <button class="btn" id="stop" type="button" disabled>停止</button>
+        <button class="btn" id="openPlayer" type="button" disabled title="A と B を並べて再生するタブへ移ります（フレームを選んでいれば、その時刻から）">A と B を並べて再生</button>
+      </div>
+      <div class="tools" data-for="player">
+        <span class="pl-count" id="pl-count">0本</span>
+        <div class="seg" role="group" aria-label="並べ方">
+          <button type="button" id="pl-layAuto" aria-pressed="true" aria-label="自動" title="画面と動画の形に合わせて自動で選ぶ (A)">
+            <svg class="ico" aria-hidden="true"><use href="#i-layout-auto"/></svg><span class="lbl">自動</span>
+          </button>
+          <button type="button" id="pl-layH" aria-pressed="false" aria-label="横並び" title="横に並べる (H)">
+            <svg class="ico" aria-hidden="true"><use href="#i-layout-h"/></svg><span class="lbl">横並び</span>
+          </button>
+          <button type="button" id="pl-layV" aria-pressed="false" aria-label="縦並び" title="縦に並べる (V)">
+            <svg class="ico" aria-hidden="true"><use href="#i-layout-v"/></svg><span class="lbl">縦並び</span>
+          </button>
+        </div>
+        <button type="button" class="btn" id="pl-add" aria-label="動画を追加" title="動画を追加">
+          <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg><span class="lbl">動画を追加</span>
+        </button>
+        <input id="pl-file" type="file" accept="video/*" multiple hidden>
+      </div>
+    </div>
+    <progress id="bar" max="1" value="0" hidden aria-label="比較の進み具合"></progress>
   </header>
 
   <main>
-    <section class="files" aria-label="比較する動画">
-      <div class="slot" data-slot="A">
-        <label class="drop" for="fileA">
-          <span class="slot-title">動画 A（基準）</span>
-          <span class="slot-name" id="nameA">クリックして選択、またはドロップ</span>
+    <div class="diff" id="panel-diff" role="tabpanel" aria-labelledby="tab-diff">
+      <!-- A と B の枠が、そのまま動画の受け口になる（クリック、ドロップ、ウィンドウ全体へのドロップ） -->
+      <section class="views" aria-label="比較する動画とフレーム">
+        <figure class="view slot" data-slot="A">
+          <label class="pane" for="fileA" title="クリックして動画 A を選ぶ（ドロップも可。選び直すと入れ替わります）">
+            <canvas id="cA" width="16" height="9"></canvas>
+            <span class="pane-hint">
+              <b>動画 A（基準）</b>
+              <span id="nameA">クリックして選択、またはドロップ</span>
+            </span>
+          </label>
+          <input class="visually-hidden" id="fileA" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+          <figcaption id="capA">A</figcaption>
+          <p class="meta" id="metaA"></p>
+        </figure>
+        <figure class="view slot" data-slot="B">
+          <label class="pane" for="fileB" title="クリックして動画 B を選ぶ（ドロップも可。選び直すと入れ替わります）">
+            <canvas id="cB" width="16" height="9"></canvas>
+            <span class="pane-hint">
+              <b>動画 B（比較対象）</b>
+              <span id="nameB">クリックして選択、またはドロップ</span>
+            </span>
+          </label>
+          <input class="visually-hidden" id="fileB" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+          <figcaption id="capB">B</figcaption>
+          <p class="meta" id="metaB"></p>
+        </figure>
+        <figure class="view">
+          <div class="pane">
+            <canvas id="cD" width="16" height="9"></canvas>
+            <span class="pane-hint" id="diffHint">
+              <b>差分</b>
+              <span>A と B を読み込んで「開始」を押すと、ここに出ます</span>
+            </span>
+          </div>
+          <figcaption id="capD">差分</figcaption>
+        </figure>
+      </section>
+
+      <ul class="warnings" id="warnings" aria-live="polite"></ul>
+      <p class="error" id="error" role="alert" hidden></p>
+
+      <section class="options" aria-label="設定">
+        <label class="labeled">対応づけ
+          <select class="field" id="mode">
+            <option value="auto">自動（fps が違えば時刻）</option>
+            <option value="index">フレーム番号</option>
+            <option value="time">時刻（秒）</option>
+          </select>
         </label>
-        <input class="visually-hidden" id="fileA" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
-        <p class="meta" id="metaA"></p>
-      </div>
-      <div class="slot" data-slot="B">
-        <label class="drop" for="fileB">
-          <span class="slot-title">動画 B（比較対象）</span>
-          <span class="slot-name" id="nameB">クリックして選択、またはドロップ</span>
+        <label class="labeled">計算サイズ
+          <select class="field" id="scale">
+            <option value="1">100%（正確）</option>
+            <option value="0.5">50%</option>
+            <option value="0.25">25%（速い）</option>
+          </select>
         </label>
-        <input class="visually-hidden" id="fileB" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
-        <p class="meta" id="metaB"></p>
+        <label class="labeled">描画間隔（フレーム）
+          <input class="field" id="interval" type="number" min="1" step="1" value="30">
+        </label>
+        <label class="labeled">差分の強調
+          <select class="field" id="gain">
+            <option value="1">×1</option>
+            <option value="4">×4</option>
+            <option value="16">×16</option>
+          </select>
+        </label>
+      </section>
+
+      <div class="lower">
+        <section class="graph" aria-label="差分グラフ">
+          <canvas id="chart"></canvas>
+          <div class="tip" id="tip" hidden></div>
+          <p class="hint" id="hint">終了後、グラフをクリックすると、そのフレームを A / B / 差分で表示します。← / → で前後のフレーム、[ / ] で前後の区間へ移れます。</p>
+        </section>
+
+        <section class="result" aria-label="しきい値を超えた区間">
+          <div class="result-head">
+            <h2>しきい値を超えた区間</h2>
+            <label class="inline">しきい値
+              <input class="field" id="threshold" type="number" min="0" max="255" step="0.1" value="1" title="0〜255。この値以上が続く範囲を「区間」とする">
+            </label>
+          </div>
+          <ul id="ranges"></ul>
+          <div class="result-foot">
+            <button class="btn" id="exportImages" type="button" disabled>各区間のピークを ZIP で保存</button>
+            <button class="btn" id="exportCsv" type="button" disabled>CSV で保存</button>
+          </div>
+        </section>
       </div>
-    </section>
+    </div>
 
-    <section class="options" aria-label="設定">
-      <label>対応づけ
-        <select id="mode">
-          <option value="auto">自動（fps が違えば時刻）</option>
-          <option value="index">フレーム番号</option>
-          <option value="time">時刻（秒）</option>
-        </select>
-      </label>
-      <label>計算サイズ
-        <select id="scale">
-          <option value="1">100%（正確）</option>
-          <option value="0.5">50%</option>
-          <option value="0.25">25%（速い）</option>
-        </select>
-      </label>
-      <label>描画間隔（フレーム）
-        <input id="interval" type="number" min="1" step="1" value="30">
-      </label>
-      <label>差分の強調
-        <select id="gain">
-          <option value="1">×1</option>
-          <option value="4">×4</option>
-          <option value="16">×16</option>
-        </select>
-      </label>
-      <label>しきい値（0〜255）
-        <input id="threshold" type="number" min="0" max="255" step="0.1" value="1">
-      </label>
-    </section>
-
-    <ul class="warnings" id="warnings" aria-live="polite"></ul>
-    <p class="error" id="error" role="alert" hidden></p>
-
-    <section class="actions">
-      <button id="start" type="button" disabled>開始</button>
-      <button id="stop" type="button" disabled>停止</button>
-      <progress id="bar" max="1" value="0"></progress>
-      <span id="status" aria-live="polite">動画 A と B を選んでください。</span>
-    </section>
-
-    <section class="views" aria-label="フレーム">
-      <figure><canvas id="cA" width="16" height="9"></canvas><figcaption id="capA">A</figcaption></figure>
-      <figure><canvas id="cB" width="16" height="9"></canvas><figcaption id="capB">B</figcaption></figure>
-      <figure><canvas id="cD" width="16" height="9"></canvas><figcaption id="capD">差分</figcaption></figure>
-    </section>
-
-    <section class="graph" aria-label="差分グラフ">
-      <canvas id="chart"></canvas>
-      <div class="tip" id="tip" hidden></div>
-      <p class="hint" id="hint">終了後、グラフの点をクリックすると、そのフレームを A / B / 差分で表示します。</p>
-    </section>
-
-    <section class="result" aria-label="しきい値を超えた区間">
-      <div class="result-head">
-        <h2>しきい値を超えた区間</h2>
-        <button id="exportImages" type="button" disabled>各区間のピークを ZIP で保存</button>
-        <button id="exportCsv" type="button" disabled>CSV で保存</button>
+    <div class="player" id="panel-player" role="tabpanel" aria-labelledby="tab-player" hidden>
+      <div class="pl-wrap" id="pl-wrap">
+        <div class="pl-stage" id="pl-stage" data-layout="h" role="region" aria-label="動画"></div>
+        <div class="pl-cta" id="pl-cta">
+          <div class="pl-cta-box">
+            <h2>動画をここにドロップ</h2>
+            <p>複数まとめて入れると、同じタイムラインで一緒に再生されます。「比較」で選んだ A と B も、ここへ送れます。</p>
+            <button type="button" class="btn primary" id="pl-pick">ファイルを選ぶ</button>
+            <div class="pl-keys">Space 再生 / ← → 5秒移動 / , . コマ送り</div>
+          </div>
+        </div>
       </div>
-      <ul id="ranges"></ul>
-    </section>
+
+      <section class="transport" aria-label="再生コントロール">
+        <div class="t-play">
+          <button type="button" class="icon" id="pl-back" title="1コマ戻る ( , )" aria-label="1コマ戻る">
+            <svg class="ico" aria-hidden="true"><use href="#i-back"/></svg>
+          </button>
+          <button type="button" class="play" id="pl-play" aria-pressed="false" aria-label="再生 / 一時停止" title="再生 / 一時停止 (Space)">
+            <svg class="ico pl" aria-hidden="true"><use href="#i-play"/></svg>
+            <svg class="ico pa" aria-hidden="true"><use href="#i-pause"/></svg>
+          </button>
+          <button type="button" class="icon" id="pl-fwd" title="1コマ進む ( . )" aria-label="1コマ進む">
+            <svg class="ico" aria-hidden="true"><use href="#i-fwd"/></svg>
+          </button>
+        </div>
+        <div class="t-time time" aria-live="off"><span id="pl-cur">0:00.00</span><span class="dim"> / </span><span id="pl-tot">0:00.00</span></div>
+        <div class="t-scrub"><input class="scrub" id="pl-scrub" type="range" min="0" max="1" step="1" value="0" aria-label="再生位置"></div>
+        <div class="t-opts">
+          <select class="field rate" id="pl-rate" aria-label="再生速度">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+          <button type="button" class="icon tog" id="pl-loop" aria-pressed="false" title="ループ再生" aria-label="ループ再生">
+            <svg class="ico" aria-hidden="true"><use href="#i-loop"/></svg>
+          </button>
+          <button type="button" class="icon mute" id="pl-muteAll" aria-pressed="false" title="すべてミュート (M)" aria-label="すべてミュート">
+            <svg class="ico on" aria-hidden="true"><use href="#i-volume"/></svg>
+            <svg class="ico off" aria-hidden="true"><use href="#i-muted"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <div class="veil" id="pl-veil" hidden><div>離すと追加します</div></div>
+      <div class="pl-toast" id="pl-toast" role="status" aria-live="polite" hidden></div>
+
+      <template id="pl-tile">
+        <figure class="tile">
+          <figcaption class="cap">
+            <span class="name"></span>
+            <label class="shift" title="この動画を始めるタイミング（秒）。プラスで遅らせ、マイナスで先へ進めます">
+              <span>開始</span><input class="field" type="number" step="0.01" value="0.00" inputmode="decimal"><span>秒</span>
+            </label>
+            <button type="button" class="icon mute" aria-pressed="false" title="この動画のミュート">
+              <svg class="ico on" aria-hidden="true"><use href="#i-volume"/></svg>
+              <svg class="ico off" aria-hidden="true"><use href="#i-muted"/></svg>
+            </button>
+            <button type="button" class="icon rm" title="この動画を外す" aria-label="この動画を外す">
+              <svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </figcaption>
+          <video playsinline preload="auto"></video>
+        </figure>
+      </template>
+    </div>
   </main>
 
   <footer>
-    <a href="https://github.com/Tsut-ps/diffm-web" rel="noopener noreferrer">ソースコード</a>
-    · 動画の読み込みに <a href="https://github.com/Vanilagy/mediabunny/tree/f630141a4ac2936d00af14bf8ff2c5bb62b66150" rel="noopener noreferrer">mediabunny 1.62.1</a>（<a href="https://mozilla.org/MPL/2.0/" rel="noopener noreferrer">MPL-2.0</a>）を使用
+    <p>
+      処理はすべてブラウザ内で行い、動画は送信されません
+      · <a href="https://github.com/Tsut-ps/diffm-web" rel="noopener noreferrer">ソースコード</a>
+      <!-- mediabunny を使うのは比較だけ。並べて再生は <video> なので、比較タブのときだけ出す -->
+      <span class="only-diff">· 動画の読み込みに <a href="https://github.com/Vanilagy/mediabunny/tree/f630141a4ac2936d00af14bf8ff2c5bb62b66150" rel="noopener noreferrer">mediabunny 1.62.1</a>（<a href="https://mozilla.org/MPL/2.0/" rel="noopener noreferrer">MPL-2.0</a>）を使用</span>
+    </p>
   </footer>
 
   <noscript><p>このツールには JavaScript が必要です。</p></noscript>

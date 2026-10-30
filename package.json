@@ -2,7 +2,7 @@
   "name": "diffm-web",
   "private": true,
   "type": "module",
-  "description": "2本の動画をフレーム単位で比較し、差分をグラフにする Web ツール",
+  "description": "動画をフレーム単位で比較して差分をグラフにする、複数の動画を並べて再生する Web ツール",
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc",

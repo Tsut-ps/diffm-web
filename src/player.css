@@ -1,0 +1,85 @@
+/* 並べて再生: 上に動画の舞台、下に共通の再生バー（形・色・余白は style.css と共通）
+   並べ方や動画の追加は、ヘッダーの右側にある */
+
+.player { height: 100%; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--gap); }
+
+.ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ico .f { fill: currentColor; stroke: none; }
+
+/* ヘッダーの操作 */
+.pl-count { font: 500 12.5px var(--font-mono); color: var(--muted); }
+
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--border); border-radius: calc(var(--r-ctl) + 3px); }
+/* 枠（余白 3px + 線 1px）を含めた全体の高さを、他の操作部品と同じ --h-ctl にする */
+.seg button { display: inline-flex; align-items: center; gap: 6px; min-height: calc(var(--h-ctl) - 8px); padding: 0 12px; border: 0; background: transparent; color: var(--muted); }
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.seg button[aria-pressed="true"] .ico { color: var(--accent); }
+
+.icon { width: var(--h-ctl); height: var(--h-ctl); display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--muted); }
+.icon:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
+.icon.tog[aria-pressed="true"] { color: var(--accent); }
+.mute[aria-pressed="false"] { color: var(--text); }
+.mute[aria-pressed="true"] .on, .mute[aria-pressed="false"] .off { display: none; }
+
+/* 舞台 */
+.pl-wrap { position: relative; min-height: 0; }
+.pl-stage { height: 100%; display: grid; gap: var(--gap); }
+.pl-stage[data-layout="h"] { grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
+.pl-stage[data-layout="v"] { grid-template-rows: repeat(var(--n, 2), minmax(0, 1fr)); grid-template-columns: minmax(0, 1fr); }
+
+.tile { margin: 0; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.cap { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 40px; padding: 4px 6px 4px 12px; }
+.cap .name { flex: 1 1 5rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.shift { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.shift .field { width: 6.4em; min-height: 26px; padding: 0 6px; font-size: 12.5px; }
+.tile video { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; background: var(--tile); object-fit: contain; }
+
+/* 空のときは、舞台全体が1つの受け口になる */
+.pl-cta { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--panel); }
+.pl-cta-box { display: grid; justify-items: center; gap: var(--gap); max-width: min(100%, 420px); text-align: center; }
+.pl-cta-box p { margin: 0; color: var(--muted); text-wrap: pretty; }
+.pl-keys { font: 12px var(--font-mono); color: var(--muted); }
+
+/* 再生バー */
+.transport {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "play time scrub opts";
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 14px;
+}
+.t-play { grid-area: play; display: flex; align-items: center; gap: 4px; }
+.t-time { grid-area: time; }
+.t-scrub { grid-area: scrub; min-width: 0; }
+.t-opts { grid-area: opts; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.play { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+.play .ico { width: 20px; height: 20px; }
+.play:hover:not(:disabled) { filter: brightness(1.07); }
+.play[aria-pressed="true"] .pl, .play[aria-pressed="false"] .pa { display: none; }
+.time { font: 500 13px var(--font-mono); white-space: nowrap; }
+.time .dim { color: var(--muted); }
+
+.scrub { --p: 0; -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 24px; margin: 0; background: transparent; cursor: pointer; }
+.scrub::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent) calc(var(--p) * 1%), var(--border) 0); }
+.scrub::-moz-range-track { height: 4px; border-radius: 2px; background: var(--border); }
+.scrub::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+.scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: var(--text); border: 2px solid var(--accent); }
+.scrub::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--text); border: 2px solid var(--accent); }
+.scrub:disabled { cursor: not-allowed; opacity: 0.5; }
+
+select.rate { font-family: var(--font-mono); font-size: 12.5px; background: var(--panel-2); }
+
+@media (max-width: 700px) {
+  /* ヘッダーを1段に収めるため、ボタンはアイコンだけにする */
+  .tools .lbl { display: none; }
+  .tools .seg button, .tools .btn { padding-inline: 10px; }
+}
+
+@media (max-width: 680px) {
+  .transport { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "scrub scrub" "play time" "opts opts"; }
+}
+
+/* 通知 */
+.pl-toast { position: fixed; z-index: 60; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translateX(-50%); max-width: min(92vw, 460px); padding: 9px 16px; background: var(--text); color: var(--bg); border-radius: var(--r-ctl); font-size: 13px; text-align: center; box-shadow: 0 6px 24px rgb(0 0 0 / 0.3); }

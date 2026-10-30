@@ -3,7 +3,7 @@
 import { resolveMode } from '../lib/diff';
 import type { Mode, ModeSetting, Slot, VideoInfo } from '../types';
 
-function byId<T extends HTMLElement>(id: string): T {
+export function byId<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) throw new Error(`#${id} が見つかりません。`);
   return el as T;
@@ -33,6 +33,7 @@ export const ui = {
   error: byId('error'),
   start: byId<HTMLButtonElement>('start'),
   stop: byId<HTMLButtonElement>('stop'),
+  openPlayer: byId<HTMLButtonElement>('openPlayer'),
   bar: byId<HTMLProgressElement>('bar'),
   status: byId('status'),
 
@@ -41,6 +42,8 @@ export const ui = {
     B: byId<HTMLCanvasElement>('cB'),
     D: byId<HTMLCanvasElement>('cD'),
   } satisfies Record<Caption, HTMLCanvasElement>,
+  /** 差分の枠の案内（比較結果が出たら隠す） */
+  diffHint: byId('diffHint'),
   caption: { A: byId('capA'), B: byId('capB'), D: byId('capD') } satisfies Record<Caption, HTMLElement>,
 
   chart: byId<HTMLCanvasElement>('chart'),

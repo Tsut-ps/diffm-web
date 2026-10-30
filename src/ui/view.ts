@@ -24,6 +24,7 @@ export function showCaptions(i: number, tsA: number, tsB: number, diff: number):
   ui.caption.A.textContent = `A · #${i} · ${num(tsA, 3)} s`;
   ui.caption.B.textContent = `B · #${i} · ${num(tsB, 3)} s`;
   ui.caption.D.textContent = `差分 · ${num(diff)}`;
+  ui.diffHint.hidden = true;
 }
 
 export function currentRanges(): Range[] {
@@ -51,6 +52,8 @@ export function syncButtons(): void {
   const { A, B, run, running } = state;
   ui.start.disabled = running || !(A && B);
   ui.stop.disabled = !running;
+  ui.bar.hidden = !running;
+  ui.openPlayer.disabled = !(A && B);
   for (const el of lockableInputs) el.disabled = running;
   const done = !!run && run.values.length > 0 && !running;
   ui.exportCsv.disabled = !done;
@@ -120,6 +123,8 @@ export function resetRun(): void {
   ui.caption.A.textContent = 'A';
   ui.caption.B.textContent = 'B';
   ui.caption.D.textContent = '差分';
+  ui.canvas.D.getContext('2d')?.clearRect(0, 0, ui.canvas.D.width, ui.canvas.D.height);
+  ui.diffHint.hidden = false;
   drawGraph();
   syncButtons();
 }
