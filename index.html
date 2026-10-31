@@ -139,6 +139,7 @@
       <!-- 差分グラフ。しきい値を超えた区間は、グラフ上に帯で出す -->
       <section class="graph video-only" aria-label="差分グラフ">
         <div class="graph-head">
+          <b class="graph-title">映像の差</b>
           <span class="graph-summary" id="rangeSummary" aria-live="polite"></span>
           <div class="range-nav" role="group" aria-label="区間の移動">
             <button type="button" class="icon" id="rangePrev" disabled title="前の区間のピークへ" aria-label="前の区間のピークへ">
@@ -175,14 +176,13 @@
           </button>
           <button class="btn" id="aCsv" type="button" disabled title="列ごとの音量（A / B / 差）を保存">CSV で保存</button>
         </div>
-        <canvas id="aChart" aria-label="音量（A / B / 差）"></canvas>
+        <canvas id="aChart" aria-label="音量（A / B）と、波形の差"></canvas>
         <canvas id="aSpec" aria-label="周波数ごとの音量の差（B − A）"></canvas>
         <p class="legend">
-          <span class="sw" data-k="d"></span>差（A − B の波形）
-          <span class="sw" data-k="a"></span>A
-          <span class="sw" data-k="b"></span>B（点線）
+          <span class="sw" data-k="d"></span>波形の差（A − B）
+          <span class="sw" data-k="a"></span><span class="sw" data-k="b"></span>音量 A・B（点線）
           <span class="sep">｜</span>
-          下の図の色:
+          下の図は、周波数ごとの音量の差。色:
           <span class="sw" data-k="la"></span>A のほうが大きい
           <span class="sw" data-k="lb"></span>B のほうが大きい（濃いほど差が大きい）
         </p>

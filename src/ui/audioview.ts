@@ -194,7 +194,7 @@ export function bindAudio(seek: (time: number) => void): void {
     const au = state.audio;
     if (!au) return '';
     const k = column(t);
-    return `${formatTime(k / HOP_RATE)} · A ${dbText(au.levelA[k]!)} · B ${dbText(au.levelB[k]!)} · 差 ${dbText(au.diff[k]!)} dB`;
+    return `${formatTime(k / HOP_RATE)} · A ${dbText(au.levelA[k]!)} · B ${dbText(au.levelB[k]!)} · 波形の差 ${dbText(au.diff[k]!)} dB`;
   });
 
   bindCanvas(ui.aSpec, () => specLayout, (t, y) => {

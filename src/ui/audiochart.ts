@@ -1,4 +1,4 @@
-// 音声の差のグラフ（Canvas）: 音量の折れ線（A / B / 差）と、周波数 × 時間のスペクトログラム（B − A）。
+// 音声の差のグラフ（Canvas）: 音量（A / B）と波形の差の折れ線、周波数 × 時間のスペクトログラム（B − A）。
 // 2 つは、横軸（時間）の位置をそろえる。
 
 import { DB_MIN, HOP_RATE } from '../lib/audiodsp';
@@ -25,7 +25,6 @@ export interface AudioChartOptions {
 
 /** 差が、色の最大になる値（dB）。これ以上は同じ濃さ */
 const SPEC_SCALE_DB = 24;
-
 // 余白（CSS px）。折れ線は、下に時刻の目盛りを置かない
 const MARGIN = { l: 48, r: 12, t: 10 };
 
