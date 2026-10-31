@@ -12,6 +12,9 @@
 <img width="1120" height="575" alt="image" src="https://github.com/user-attachments/assets/9df5fd12-3d90-4687-b83f-3303d889dbbe" />
 （立ち絵: 一止月サノツキさん）
 
+<img width="992" height="430" alt="image" src="https://github.com/user-attachments/assets/8d16cbbb-231d-41db-aa3f-30dfdc70c9e5" />
+（音声の差分比較もできるようにしました）
+
 ## 2つを比較の使い方
 
 1. 上の A（基準）と B（比較対象）の枠に動画を入れる。枠をクリックして選ぶか、ドロップする。ウィンドウのどこにドロップしても入る（2本なら A → B、1本なら空いている枠へ）。入れ替えるときは、その枠に入れ直す。読み込むと、先頭フレームが枠に出る
