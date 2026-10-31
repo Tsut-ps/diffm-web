@@ -2,12 +2,13 @@
 
 import { VideoSampleSink, type VideoSample } from 'mediabunny';
 import { analyzeAudio, canCompareAudio } from './audio';
+import { HOP_RATE } from './lib/audiodsp';
 import { meanLumaDiff, renderDiff } from './lib/diff';
 import { readRunSettings, ui } from './ui/dom';
 import { grab, viewContexts } from './frames';
 import { pairByIndex, pairByTime } from './lib/pairing';
-import { state, type Run } from './types';
-import { errorMessage, fmt, num, yieldToUI } from './lib/util';
+import { hasVideo, state, type Run, type VideoInfo } from './types';
+import { errorMessage, fmt, formatTime, num, yieldToUI } from './lib/util';
 import { refreshAudio } from './ui/audioview';
 import { refreshResults, resetRun, showCaptions, showError, summary, syncButtons } from './ui/view';
 
@@ -23,11 +24,39 @@ const REDRAW_COST_RATIO = 4;
 /** 再デコード時に、このフレームを確実に指すタイムスタンプ（フレーム中央付近）。 */
 const queryTime = (s: VideoSample) => s.timestamp + (s.duration > 0 ? s.duration / 2 : 1e-6);
 
+/** 音声だけで比べる（A か B に、映像がないとき）。映像の比較は行わない。 */
+async function startAudioOnly(A: VideoInfo, B: VideoInfo): Promise<void> {
+  state.running = true;
+  state.stop = false;
+  syncButtons();
+  const t0 = performance.now();
+  ui.status.textContent = '音声を解析中…';
+  try {
+    await analyzeAudio(A, B, () => state.stop, () => {
+      refreshAudio();
+      const au = state.audio;
+      if (au && au.expected > 0) ui.bar.value = Math.min(1, au.count / au.expected);
+    });
+  } finally {
+    state.running = false;
+    ui.bar.value = 1;
+    const au = state.audio;
+    const secs = (performance.now() - t0) / 1000;
+    ui.status.textContent =
+      `${state.stop ? '停止' : '完了'} 音声 ${formatTime((au?.count ?? 0) / HOP_RATE)} · ${num(secs, 1)} 秒`;
+    refreshAudio();
+    syncButtons();
+  }
+}
+
 export async function start(): Promise<void> {
   const { A, B } = state;
   if (state.running || !A || !B) return;
+  const audioOnly = !(hasVideo(A) && hasVideo(B));
+  if (audioOnly && !canCompareAudio(A, B)) return;
   resetRun();
   showError('');
+  if (!(hasVideo(A) && hasVideo(B))) return startAudioOnly(A, B);
 
   const { mode, w, h, gain, redrawMs } = readRunSettings(A, B);
   for (const c of Object.values(ui.canvas)) {

@@ -10,28 +10,29 @@ export type Mode = 'index' | 'time';
 /** 画面で選べる対応づけ方法（auto は読み込んだ動画から決める）。 */
 export type ModeSetting = Mode | 'auto';
 
-/** 動画に含まれる音声（読めるときだけ持つ）。時刻は、動画の先頭フレームを 0 とする。 */
+/** 読み込んだファイルに含まれる音声（読めるときだけ持つ）。時刻は、先頭（映像があれば先頭フレーム）を 0 とする。 */
 export interface AudioInfo {
   track: InputAudioTrack;
   codec: AudioCodec | null;
   /** サンプルレート（Hz） */
   rate: number;
   channels: number;
-  /** 動画の先頭から、音声の終わりまで（秒） */
+  /** 先頭から、音声の終わりまで（秒） */
   duration: number;
 }
 
-/** 読み込んだ動画の情報。 */
+/** 読み込んだファイル（動画、または音声だけのファイル）の情報。 */
 export interface VideoInfo {
   file: File;
   input: Input;
-  track: InputVideoTrack;
+  /** 映像。音声だけのファイルでは null（このとき w / h / fps は 0、codec は null） */
+  track: InputVideoTrack | null;
   codec: VideoCodec | null;
   w: number;
   h: number;
   fps: number;
   duration: number;
-  /** 先頭フレームのタイムスタンプ（秒） */
+  /** 先頭のタイムスタンプ（秒）。映像があれば先頭フレーム、なければ音声の先頭 */
   first: number;
   /** 音声。無い・読めないときは null */
   audio: AudioInfo | null;
@@ -88,6 +89,9 @@ export interface AudioRun {
   selected: number;
   hover: number;
 }
+
+/** 映像を持つか（音声だけのファイルではない）。 */
+export const hasVideo = (v: VideoInfo): v is VideoInfo & { track: InputVideoTrack } => v.track !== null;
 
 export interface AppState {
   A: VideoInfo | null;

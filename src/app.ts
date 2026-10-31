@@ -9,8 +9,8 @@ import { exportAudioCsv, exportCsv, exportImages } from './exporter';
 import { inspect } from './frames';
 import { clearFile, setFile } from './loader';
 import { addVideos, initPlayer, resetPlayer, setPlayerActive } from './player';
-import { SLOTS, state, type Slot } from './types';
-import { isVideoFile, num } from './lib/util';
+import { SLOTS, hasVideo, state, type Slot } from './types';
+import { isMediaFile, num } from './lib/util';
 import { bindAudio, markFrameSynced, togglePlayback } from './ui/audioview';
 import { bindWindowDrop } from './ui/dropzone';
 import { initDragNumber } from './ui/dragnumber';
@@ -79,18 +79,18 @@ function dropToSlots(files: File[]): void {
     return;
   }
   if (state.running) return;
-  const videos = files.filter(isVideoFile);
-  if (videos.length === 0) {
-    ui.status.textContent = '動画ファイルが見つかりませんでした。';
+  const media = files.filter(isMediaFile);
+  if (media.length === 0) {
+    ui.status.textContent = '動画か音声のファイルが見つかりませんでした。';
     return;
   }
-  if (videos.length >= 2) {
-    loadSlot('A', videos[0]!);
-    loadSlot('B', videos[1]!);
+  if (media.length >= 2) {
+    loadSlot('A', media[0]!);
+    loadSlot('B', media[1]!);
     return;
   }
   const empty = SLOTS.find((s) => !ui.slotRoot[s].classList.contains('loaded'));
-  if (empty) loadSlot(empty, videos[0]!);
+  if (empty) loadSlot(empty, media[0]!);
   else ui.status.textContent = '入れ替えるには、A か B の枠にドロップしてください。';
 }
 
@@ -233,7 +233,8 @@ function bindKeys(): void {
  *  フレームを選んでいれば、その時刻から始める。 */
 function loadComparedVideos(): void {
   const { A, B, run } = state;
-  const fresh = [A, B].flatMap((v) => (v && !offered.has(v.file) ? [v.file] : []));
+  // 音声だけのファイルは、並べて再生（動画用）へは送らない
+  const fresh = [A, B].flatMap((v) => (v && hasVideo(v) && !offered.has(v.file) ? [v.file] : []));
   if (fresh.length === 0) return;
   for (const f of fresh) offered.add(f);
   const at = A && run && run.selected >= 0 ? run.tsA[run.selected]! - A.first : undefined;

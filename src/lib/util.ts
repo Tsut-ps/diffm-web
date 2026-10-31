@@ -13,6 +13,11 @@ const VIDEO_EXT = /\.(mp4|m4v|mov|webm|mkv|ogv|ogg|avi|3gp)$/i;
 /** 動画ファイルらしいか（種類か拡張子で見る）。 */
 export const isVideoFile = (f: File): boolean => f.type.startsWith('video/') || VIDEO_EXT.test(f.name);
 
+const AUDIO_EXT = /\.(mp3|wav|flac|m4a|aac|ogg|oga|opus|weba|mka|aif|aiff)$/i;
+
+/** 動画か、音声だけのファイルらしいか（比較の枠に入れられるもの）。 */
+export const isMediaFile = (f: File): boolean => isVideoFile(f) || f.type.startsWith('audio/') || AUDIO_EXT.test(f.name);
+
 export const clamp = (x: number, lo: number, hi: number): number => Math.min(Math.max(x, lo), hi);
 
 /** 秒を m:ss.cc で表示。 */

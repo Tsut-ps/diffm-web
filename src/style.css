@@ -201,6 +201,15 @@ label.pane { cursor: pointer; }
 .slot[data-slot="A"].loaded .pane-hint::before { content: "A"; color: var(--accent); font-weight: 700; }
 .slot[data-slot="B"].loaded .pane-hint::before { content: "B"; color: var(--accent); font-weight: 700; }
 .view .pane-hint[hidden] { display: none; }
+/* 音声だけのファイルには絵がないので、枠は低くして、印を出す */
+.slot.audio-only .pane { aspect-ratio: 16 / 4; }
+.slot.audio-only .pane::after {
+  content: "音声のみ"; position: absolute; inset: 0; display: grid; place-content: center;
+  color: var(--muted); font-size: 14px; pointer-events: none;
+}
+/* 音声だけのファイルがあるときは、映像の比較に関わる欄を隠す */
+#panel-diff[data-video="off"] .video-only { display: none; }
+#panel-diff[data-video="off"] .run-buttons { padding-right: 0; border-right: 0; }
 
 /* 枠の下の行: 左に時刻など、右に動画の情報（解像度・fps・長さ・コーデック。差分の枠は、比較に使う大きさ） */
 .view figcaption { display: flex; justify-content: space-between; gap: 8px; min-height: 1.6em; color: var(--muted); font: 12.5px var(--font-mono); }

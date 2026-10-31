@@ -23,6 +23,8 @@ export const ui = {
   fileName: bySlot((s) => byId(`name${s}`)),
   meta: bySlot((s) => byId(`meta${s}`)),
 
+  /** 「2つを比較」の画面全体。映像を比べないとき（音声だけのファイルがあるとき）、data-video="off" にする */
+  panel: byId('panel-diff'),
   mode: byId<HTMLSelectElement>('mode'),
   scale: byId<HTMLSelectElement>('scale'),
   redraw: byId<HTMLSelectElement>('redraw'),

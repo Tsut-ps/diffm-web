@@ -70,7 +70,7 @@
               <span id="nameA">クリックして選択、またはドロップ</span>
             </span>
           </label>
-          <input class="visually-hidden" id="fileA" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+          <input class="visually-hidden" id="fileA" type="file" accept="video/*,audio/*,.mkv,.webm,.mov,.mp4,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.mka">
           <figcaption><span id="capA"></span><span class="meta" id="metaA"></span></figcaption>
         </figure>
         <figure class="view slot" data-slot="B">
@@ -81,10 +81,10 @@
               <span id="nameB">クリックして選択、またはドロップ</span>
             </span>
           </label>
-          <input class="visually-hidden" id="fileB" type="file" accept="video/*,.mkv,.webm,.mov,.mp4">
+          <input class="visually-hidden" id="fileB" type="file" accept="video/*,audio/*,.mkv,.webm,.mov,.mp4,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.mka">
           <figcaption><span id="capB"></span><span class="meta" id="metaB"></span></figcaption>
         </figure>
-        <figure class="view">
+        <figure class="view video-only">
           <div class="pane">
             <canvas id="cD" width="16" height="9"></canvas>
             <span class="pane-hint" id="diffHint">
@@ -103,21 +103,21 @@
           <button class="btn primary" id="start" type="button" disabled>解析開始</button>
           <button class="btn" id="stop" type="button" disabled>停止</button>
         </div>
-        <label class="labeled">フレームの合わせ方
+        <label class="labeled video-only">フレームの合わせ方
           <select class="field" id="mode" title="A のどのフレームと、B のどのフレームを比べるか。フレーム番号: A の n 番目と B の n 番目 / 時刻: A の各フレームの時刻に、B で表示されているフレーム">
             <option value="auto">自動（fps が違えば時刻）</option>
             <option value="index">フレーム番号</option>
             <option value="time">時刻（秒）</option>
           </select>
         </label>
-        <label class="labeled">比較の解像度
+        <label class="labeled video-only">比較の解像度
           <select class="field" id="scale" title="差分を計算するときに、縦横をこの割合に縮小する（50% なら画素数は 1/4）。小さいほど速いが、細かい差は見逃しやすい">
             <option value="1">100%（原寸・正確）</option>
             <option value="0.5">50%</option>
             <option value="0.25">25%（雑・速い）</option>
           </select>
         </label>
-        <label class="labeled">途中経過の更新
+        <label class="labeled video-only">途中経過の更新
           <select class="field" id="redraw" title="比較中に、差分の画像とグラフを、1秒に最大で何回描き直すか。「全フレーム」は、比較した全てのフレームを描き直す（負荷が高く、比較は遅くなる）。結果の値には影響しない">
             <option value="auto">自動</option>
             <option value="max">全フレーム（滑らか・高負荷）</option>
@@ -127,7 +127,7 @@
             <option value="1">最大 1 回/秒（軽い）</option>
           </select>
         </label>
-        <label class="labeled">差分の強調
+        <label class="labeled video-only">差分の強調
           <select class="field" id="gain">
             <option value="1">×1</option>
             <option value="4">×4</option>
@@ -137,7 +137,7 @@
       </section>
 
       <!-- 差分グラフ。しきい値を超えた区間は、グラフ上に帯で出す -->
-      <section class="graph" aria-label="差分グラフ">
+      <section class="graph video-only" aria-label="差分グラフ">
         <div class="graph-head">
           <span class="graph-summary" id="rangeSummary" aria-live="polite"></span>
           <div class="range-nav" role="group" aria-label="区間の移動">

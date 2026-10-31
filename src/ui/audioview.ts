@@ -45,7 +45,8 @@ function resultText(): string {
   const upTo = au.count < au.expected ? ` · ${formatTime(au.count / HOP_RATE)} まで` : '';
   if (au.energyDiff === 0) return `差なし（完全に一致）${upTo}`;
   const rel = au.energyA > 0 ? `${num(10 * Math.log10(au.energyDiff / au.energyA), 1)} dB（A の音量に対して）` : '-';
-  return `全体の差 ${rel} · 最大 ${dbText(max)} dBFS（${formatTime(at / HOP_RATE)}）${upTo}`;
+  const peak = max <= DB_MIN ? `最大 ${DB_MIN} dBFS 以下` : `最大 ${dbText(max)} dBFS（${formatTime(at / HOP_RATE)}）`;
+  return `全体の差 ${rel} · ${peak}${upTo}`;
 }
 
 function summaryText(): string {

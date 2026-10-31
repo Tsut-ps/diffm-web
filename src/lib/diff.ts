@@ -90,6 +90,12 @@ export function compareInfo(a: Timing, b: Timing, mode: Mode): string[] {
   return warnings;
 }
 
+/** 片方だけ音声のみのファイルのとき、映像は比べないことを伝える（両方が音声のみなら、言うまでもない）。 */
+export function videoInfo(a: Pick<VideoInfo, 'track'>, b: Pick<VideoInfo, 'track'>): string[] {
+  if (!a.track === !b.track) return [];
+  return [`${a.track ? 'B' : 'A'} は音声だけなので、映像は比べません。`];
+}
+
 /** 音声の比較条件の警告（日本語）。音声が両方にあるときだけ、サンプルレートとチャンネル数を見る。 */
 export function audioInfo(a: Pick<VideoInfo, 'audio'>, b: Pick<VideoInfo, 'audio'>): string[] {
   const x = a.audio;

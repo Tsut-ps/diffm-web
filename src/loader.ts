@@ -32,20 +32,35 @@ async function readAudioInfo(input: Input, first: number): Promise<Pick<VideoInf
   }
 }
 
+/** 映像のないファイル（音声だけ）の情報。音声も読めなければ、読み込みの失敗にする。 */
+async function readAudioOnlyInfo(file: File, input: Input): Promise<VideoInfo> {
+  const track = await input.getPrimaryAudioTrack();
+  if (!track) throw new Error('映像も音声も見つかりません。');
+  const first = await track.getFirstTimestamp();
+  const { audio, audioNote } = await readAudioInfo(input, first);
+  if (!audio) throw new Error(`${audioNote}。`);
+  return { file, input, track: null, codec: null, w: 0, h: 0, fps: 0, duration: audio.duration, first, audio, audioNote: '' };
+}
+
 /**
- * 動画のメタデータを読む。isStale が真になったら中断して null を返す。
+ * 動画（映像がなければ、音声だけのファイル）のメタデータを読む。isStale が真になったら中断して null を返す。
  * 失敗や中断のときは、開いた Input を閉じる。
  */
 async function readVideoInfo(file: File, isStale: () => boolean): Promise<VideoInfo | null> {
-  if (typeof VideoDecoder === 'undefined') {
-    throw new Error('このブラウザは WebCodecs に対応していません。最新の Chrome / Edge / Safari / Firefox を使ってください。');
-  }
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   let keep = false;
   try {
     const track = await input.getPrimaryVideoTrack();
     if (isStale()) return null;
-    if (!track) throw new Error('映像トラックが見つかりません。');
+    if (!track) {
+      const audioOnly = await readAudioOnlyInfo(file, input);
+      if (isStale()) return null;
+      keep = true;
+      return audioOnly;
+    }
+    if (typeof VideoDecoder === 'undefined') {
+      throw new Error('このブラウザは WebCodecs に対応していません。最新の Chrome / Edge / Safari / Firefox を使ってください。');
+    }
 
     // 解像度は重い処理（全パケットの走査）の前に確かめる
     const [w, h] = await Promise.all([track.getDisplayWidth(), track.getDisplayHeight()]);
@@ -84,6 +99,7 @@ const PREVIEW_WIDTH = 960;
 
 /** 先頭フレームを枠のキャンバスに描く。確認用なので、失敗しても読み込み自体は成功のままにする。 */
 async function drawPreview(slot: Slot, info: VideoInfo, isStale: () => boolean): Promise<void> {
+  if (!info.track) return; // 音声だけのファイルには、絵がない
   try {
     const sample = await new VideoSampleSink(info.track).getSample(info.first);
     if (!sample) return;
@@ -114,7 +130,7 @@ export function clearFile(slot: Slot): void {
   state[slot]?.input.dispose();
   state[slot] = null;
   ui.fileName[slot].textContent = emptyName[slot];
-  ui.slotRoot[slot].classList.remove('loaded');
+  ui.slotRoot[slot].classList.remove('loaded', 'audio-only');
   setMeta(slot, '');
   // 幅を変えると、描いてあった絵も消える
   ui.canvas[slot].width = 16;
@@ -136,6 +152,7 @@ export async function setFile(slot: Slot, file: File): Promise<void> {
   showError('');
   ui.fileName[slot].textContent = file.name;
   ui.slotRoot[slot].classList.add('loaded');
+  ui.slotRoot[slot].classList.remove('audio-only');
   // 前の動画の絵を残さない（失敗したときに、別の動画が映ったままにならないように）。幅を変えると、絵が消える
   ui.canvas[slot].width = 16;
   ui.canvas[slot].height = 9;
@@ -146,14 +163,17 @@ export async function setFile(slot: Slot, file: File): Promise<void> {
     const info = await readVideoInfo(file, isStale);
     if (!info) return;
     state[slot] = info;
+    ui.slotRoot[slot].classList.toggle('audio-only', !info.track);
     await drawPreview(slot, info, isStale);
     if (isStale()) return;
     const sound = info.audio
       ? `${info.audio.codec ?? '不明'} ${khz(info.audio.rate)} ${channelLabel(info.audio.channels)}`
       : info.audioNote;
     // 映像と音声を 2 行に分ける（1 行にすると、枠の幅に収まらない）
-    setMeta(slot, `${info.w}×${info.h} · ${num(info.fps)} fps · ${num(info.duration)} 秒 · ${info.codec ?? '不明'}
-${sound}`);
+    const video = info.track
+      ? `${info.w}×${info.h} · ${num(info.fps)} fps · ${num(info.duration)} 秒 · ${info.codec ?? '不明'}`
+      : `音声のみ · ${num(info.duration)} 秒`;
+    setMeta(slot, `${video}\n${sound}`);
   } catch (e) {
     if (isStale()) return;
     console.error(e);

@@ -1,10 +1,10 @@
 // 状態を画面に反映する（メッセージ、ボタン、グラフ）
 
 import { drawChart } from './chart';
-import { audioInfo, compareInfo, findRanges, type Range } from '../lib/diff';
+import { audioInfo, compareInfo, findRanges, videoInfo, type Range } from '../lib/diff';
 import { refreshAudio, resetAudio } from './audioview';
 import { currentMode, currentThreshold, lockableInputs, ui } from './dom';
-import { state, type Run, type Slot } from '../types';
+import { hasVideo, state, type Run, type Slot, type VideoInfo } from '../types';
 import { num } from '../lib/util';
 
 export function showError(message: string): void {
@@ -46,9 +46,14 @@ export function summary(run: Run): string {
   return `平均 ${num(sum / n)} · 最大 ${num(max)}（#${maxAt}）`;
 }
 
+/** 比べられるか: 映像どうし、または音声どうし（音声だけのファイルは、映像がないので、音声で比べる）。 */
+function comparable(a: VideoInfo | null, b: VideoInfo | null): boolean {
+  return !!a && !!b && ((hasVideo(a) && hasVideo(b)) || (!!a.audio && !!b.audio));
+}
+
 export function syncButtons(): void {
   const { A, B, run, running } = state;
-  ui.start.disabled = running || !(A && B);
+  ui.start.disabled = running || !comparable(A, B);
   ui.stop.disabled = !running;
   ui.bar.hidden = !running;
   for (const el of lockableInputs) el.disabled = running;
@@ -63,8 +68,11 @@ export function syncButtons(): void {
 export function refreshWarnings(): void {
   ui.warnings.replaceChildren();
   const { A, B } = state;
+  // 音声だけのファイルがあるときは、映像の欄（差分の枠・設定・グラフ）を隠す
+  ui.panel.dataset.video = [A, B].some((v) => v && !hasVideo(v)) ? 'off' : 'on';
   if (A && B) {
-    for (const msg of [...compareInfo(A, B, currentMode(A, B)), ...audioInfo(A, B)]) {
+    const video = hasVideo(A) && hasVideo(B) ? compareInfo(A, B, currentMode(A, B)) : videoInfo(A, B);
+    for (const msg of [...video, ...audioInfo(A, B)]) {
       const li = document.createElement('li');
       li.textContent = msg;
       ui.warnings.append(li);
