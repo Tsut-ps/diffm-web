@@ -82,7 +82,8 @@ export const lockableInputs: readonly (HTMLInputElement | HTMLSelectElement)[] =
 
 export function currentThreshold(): number {
   const v = Number(ui.threshold.value);
-  return Number.isFinite(v) ? v : 0;
+  const min = Number(ui.threshold.min); // 0 は、差が 0 のフレームも「違う」ことになるので、選べない
+  return Number.isFinite(v) ? Math.max(min, v) : min;
 }
 
 function modeSetting(): ModeSetting {
