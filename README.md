@@ -5,8 +5,7 @@
 - **2つを比較**: 2本の動画を比べて、どこがどれだけ違うかをグラフにします。エンコード設定を変えたときの画質劣化や、編集で意図せず変わった箇所を見つけるのに使えます。音声も同時に比べて、グラフにして、聴き比べもできます。音声だけのファイル（mp3 / wav / flac / m4a など）も入れられます
 - **複数を並べて再生**: 複数の動画を、横並び / 縦並びで、1本の共通タイムラインで同時に再生します
 
-<img width="1120" height="575" alt="image" src="https://github.com/user-attachments/assets/9df5fd12-3d90-4687-b83f-3303d889dbbe" />
-（立ち絵: 一止月サノツキさん）
+<img width="2480" height="1307" alt="image" src="https://github.com/user-attachments/assets/298e5ff9-1d71-4680-a025-fe5ee76651b0" />
 
 <img width="992" height="430" alt="image" src="https://github.com/user-attachments/assets/8d16cbbb-231d-41db-aa3f-30dfdc70c9e5" />
 （音声の差分比較もできるようにしました）
