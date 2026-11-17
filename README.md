@@ -5,11 +5,6 @@
 - **2つを比較**: 2本の動画を比べて、どこがどれだけ違うかをグラフにします。エンコード設定を変えたときの画質劣化や、編集で意図せず変わった箇所を見つけるのに使えます。音声も同時に比べて、グラフにして、聴き比べもできます。音声だけのファイル（mp3 / wav / flac / m4a など）も入れられます
 - **複数を並べて再生**: 複数の動画を、横並び / 縦並びで、1本の共通タイムラインで同時に再生します
 
-<img width="2480" height="1307" alt="image" src="https://github.com/user-attachments/assets/298e5ff9-1d71-4680-a025-fe5ee76651b0" />
-
-<img width="992" height="430" alt="image" src="https://github.com/user-attachments/assets/8d16cbbb-231d-41db-aa3f-30dfdc70c9e5" />
-（音声の差分比較もできるようにしました）
-
 ## どうして作ったの？
 
 昔作ったPythonの [diffm](https://github.com/Tsut-ps/diffm) をWebで手軽に使えるようにしたものです
@@ -25,6 +20,8 @@
 
 ### 2つを比較
 
+<img width="2480" height="1307" alt="image" src="https://github.com/user-attachments/assets/298e5ff9-1d71-4680-a025-fe5ee76651b0" />
+
 1. A（基準）と B（比較対象）の枠に、動画をドロップするか、クリックして選びます（音声だけのファイルも入れられます）
 2. 「解析開始」を押します。映像は 1 フレームずつ、音声は 1/30 秒ごとに比べます
 3. 映像のグラフを押すと、そのフレームを A / B / 差分で見られます。押したまま動かすと、フレームが追従します
@@ -33,7 +30,15 @@
 
 詳しくは、[映像の比べ方](docs/compare.md)と、[音声の差](docs/audio.md)にあります。
 
+#### 音源の比較もできます
+
+<img width="992" height="430" alt="image" src="https://github.com/user-attachments/assets/8d16cbbb-231d-41db-aa3f-30dfdc70c9e5" />
+
+（いちおう、音源だけ投げ込んでも比較できるようにはしています）
+
 ### 複数を並べて再生
+
+<img width="2496" height="878" alt="image" src="https://github.com/user-attachments/assets/6478dadb-d168-4a91-ae9c-67d1f0693f9f" />
 
 1. 動画をドロップします（複数まとめて入れられます）
 2. 右上で、並べ方（自動 / 横並び / 縦並び）を選びます
